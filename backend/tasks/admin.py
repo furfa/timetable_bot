@@ -11,6 +11,11 @@ class TaskAdmin(admin.ModelAdmin):
 admin.site.register(models.Task, TaskAdmin)
 
 
+class TelegramAccountAdmin(admin.ModelAdmin):
+    list_display = ["pk","user", "telegram_id"]
+
+admin.site.register(models.TelegramAccount, TelegramAccountAdmin)
+
 #################
 #  User Admin   #
 #################
