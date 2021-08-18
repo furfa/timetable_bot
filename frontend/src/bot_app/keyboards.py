@@ -75,9 +75,9 @@ inline_button_worker = InlineKeyboardButton("Исполнитель", callback_d
 inline_button_creator = InlineKeyboardButton("Заказчик", callback_data='creator')
 
 inline_kb_update = InlineKeyboardMarkup()
+inline_kb_update.add(inline_button_back_to_menu)
 inline_kb_update.row(inline_button_description, inline_button_deadline)
 inline_kb_update.row(inline_button_worker, inline_button_creator)
-inline_kb_update.add(inline_button_task_comments)
 
 """
     Comments markup

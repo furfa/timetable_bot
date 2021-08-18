@@ -61,6 +61,30 @@ def read_task_db(idx : int):
 def update_task_db():
     pass
 
+def update_description_db(idx : int, user_id : int, description : str):
+    for task in data:
+        if task.idx == idx and task.creator == user_id:
+            task.description = description
+            break
+
+def update_deadline_db(idx : int, user_id : int, deadline):
+    for task in data:
+        if task.idx == idx and task.creator == user_id:
+            task.deadline = deadline
+            break
+
+def update_worker_db(idx : int, user_id : int, worker : str):
+    for task in data:
+        if task.idx == idx and task.creator == user_id:
+            task.worker = worker
+            break
+
+def update_creator_db(idx : int, user_id : int, creator : int):
+    for task in data:
+        if task.idx == idx and task.creator == user_id:
+            task.creator = creator
+            break
+
 def read_comments_db(idx : int, user_id : int):
     comments = []
     for task in data:

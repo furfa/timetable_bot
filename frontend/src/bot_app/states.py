@@ -29,10 +29,10 @@ class CreateS(StatesGroup):
 
     # Update
     update = State()
-    updade_description = State()
-    updade_deadline = State()
-    updade_worker = State()
-    updade_comment = State()
+    update_description = State()
+    update_deadline = State()
+    update_worker = State()
+    update_creator = State()
 
     """
         Comments CRUD

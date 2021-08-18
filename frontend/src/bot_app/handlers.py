@@ -28,7 +28,7 @@ MENU_INTERFACE = [
 ]
 
 CONTROL_MENU_INTERFACE = [
-    'updade',
+    'update',
     'delete',
     'add_comment',
     'comments'
@@ -46,6 +46,7 @@ LIST_INTERFACE = [
 ]
 
 UPDATE_INTERFACE = [
+    'menu',
     'description',
     'deadline',
     'worker',
@@ -167,16 +168,20 @@ async def read_by_idx(chat_id : int, idx : int, task_permissions : str, state : 
 async def update_task_callback(callback_query : types.CallbackQuery, state : FSMContext):
     await bot.answer_callback_query(callback_query.id)
     chat_id = callback_query.from_user.id
-    if callback_query.data == 'description':
-        pass
-    if callback_query.data == 'deadline':
-        pass
-    if callback_query.data == 'worker':
-        pass
-    if callback_query.data == 'creator':
-        pass
-    if callback_query.data == 'comments':
-        pass
+    if callback_query.data == 'menu':
+        await return_to_menu(chat_id=chat_id)
+    elif callback_query.data == 'description':
+        await CreateS.update_description.set()
+        await bot.send_message(chat_id, "Введите новое описание")
+    elif callback_query.data == 'deadline':
+        await CreateS.update_deadline.set()
+        await bot.send_message(chat_id, "Введите новый дедлайн")
+    elif callback_query.data == 'worker':
+        await CreateS.update_worker.set()
+        await bot.send_message(chat_id, "Введите нового исполнителя")
+    elif callback_query.data == 'creator':
+        await CreateS.update_creator.set()
+        await bot.send_message(chat_id, "Введите нового заказчика")
 
 @dp.message_handler(ChatTypeFilter('private'), state=CreateS.add_comment)
 async def add_comment(message : types.Message, state : FSMContext):
@@ -344,6 +349,56 @@ async def hanle_description_create(message: types.Message, state: FSMContext):
     await CreateS.create_deadline.set()
     await bot.send_message(message.chat.id, "Введите время и дату дедлайна\nчч:мм дд.мм.гггг")
 
+@dp.message_handler(state=CreateS.update_description)
+async def hanle_description_update(message: types.Message, state: FSMContext):
+    chat_id = message.chat.id
+    async with state.proxy() as data:
+        idx = data['idx']
+        user_id = data['user_id']
+        data['description'] = message.text
+    update_description_db(idx=idx, user_id=user_id, description=message.text)
+    await CreateS.update.set()
+    await bot.send_message(chat_id, "Выберите параметр для изменения", reply_markup=inline_kb_update)
+
+@dp.message_handler(state=CreateS.update_deadline)
+async def hanle_deadline_update(message: types.Message, state: FSMContext):
+    chat_id = message.chat.id
+    date = None
+    try:
+        date = datetime.strptime(message.text, "%H:%M %d.%m.%Y") 
+    except Exception as e:
+        await message.reply('Некорректно введена дата, попробуйте еще раз')
+        return
+
+    async with state.proxy() as data:
+        idx = data['idx']
+        user_id = data['user_id']
+        data['deadline'] = date
+    update_deadline_db(idx=idx, user_id=user_id, deadline=date)
+    await CreateS.update.set()
+    await bot.send_message(chat_id, "Выберите параметр для изменения", reply_markup=inline_kb_update)
+
+@dp.message_handler(state=CreateS.update_worker)
+async def hanle_worker_update(message: types.Message, state: FSMContext):
+    chat_id = message.chat.id
+    async with state.proxy() as data:
+        idx = data['idx']
+        user_id = data['user_id']
+        data['worker'] = message.text
+    update_worker_db(idx=idx, user_id=user_id, worker=message.text)
+    await CreateS.update.set()
+    await bot.send_message(chat_id, "Выберите параметр для изменения", reply_markup=inline_kb_update)
+
+@dp.message_handler(state=CreateS.update_creator)
+async def hanle_worker_update(message: types.Message, state: FSMContext):
+    chat_id = message.chat.id
+    async with state.proxy() as data:
+        idx = data['idx']
+        user_id = data['user_id']
+        data['creator'] = message.text
+    update_creator_db(idx=idx, user_id=user_id, creator=message.text)
+    await CreateS.update.set()
+    await bot.send_message(chat_id, "Выберите параметр для изменения", reply_markup=inline_kb_update)
 
 @dp.message_handler(state=CreateS.create_deadline)
 async def hanle_deadline_create(message: types.Message, state: FSMContext):
