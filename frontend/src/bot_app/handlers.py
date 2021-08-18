@@ -184,8 +184,9 @@ async def add_comment(message : types.Message, state : FSMContext):
         data['comment'] = message.text
         idx = data['idx']
         user_id = message.from_user.id
+        task_permissions = data['task_permissions']
         add_comment_db(idx=idx, user_id=user_id, comment=data['comment'])
-    await read_by_idx(chat_id=message.chat.id, idx=idx, task_permissions='control', state=state)
+    await read_by_idx(chat_id=message.chat.id, idx=idx, task_permissions=task_permissions, state=state)
 
 async def read_comments(chat_id : int, state : FSMContext):
     async with state.proxy() as data:
@@ -275,6 +276,21 @@ async def read_control_menu_callback(callback_query : types.CallbackQuery, state
             return
     elif callback_query.data == 'add_comment':
         await CreateS.add_comment.set()
+        await state.update_data(task_permissions='control')
+        await bot.send_message(chat_id, 'Введите комментарий')
+    elif callback_query.data == 'comments':
+        await CreateS.read_comments_awaiting_idx.set()
+        await read_comments(chat_id=chat_id, state=state)
+    else:
+        await return_to_menu(chat_id)
+
+@dp.callback_query_handler(lambda c: c.data in MY_MENU_INTERFACE, state=CreateS.read_my_menu)
+async def read_my_menu_callback(callback_query : types.CallbackQuery, state : FSMContext):
+    await bot.answer_callback_query(callback_query.id)
+    chat_id = callback_query.from_user.id
+    if callback_query.data == 'add_comment':
+        await CreateS.add_comment.set()
+        await state.update_data(task_permissions='my')
         await bot.send_message(chat_id, 'Введите комментарий')
     elif callback_query.data == 'comments':
         await CreateS.read_comments_awaiting_idx.set()
