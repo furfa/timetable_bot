@@ -59,7 +59,7 @@ COMMENT_PREFIX = "comment_"
 
 async def return_to_menu(chat_id : int, menu_title : str ="Меню"):
     await CreateS.menu.set()
-    await bot.send_message(chat_id, menu_title, reply_markup=inline_kb_menu)
+    message = await bot.send_message(chat_id, menu_title, reply_markup=inline_kb_menu)
 
 async def create_init(chat_id : int):
     await CreateS.create_description.set()

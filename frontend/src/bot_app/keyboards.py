@@ -4,6 +4,7 @@ from aiogram.utils.mixins import T
 
 
 from . data_tools import Task
+from . commands import *
 
 
 """
@@ -14,7 +15,7 @@ inline_kb_skip = InlineKeyboardMarkup()
 inline_kb_skip.add(inline_button_skip)
 
 """
-    Menu markup
+    Menu markup (Inline)
 """
 inline_button_create = InlineKeyboardButton("Новая задача", callback_data='create')
 inline_button_read_my = InlineKeyboardButton("Мои задачи", callback_data='read_my')
@@ -23,6 +24,17 @@ inline_kb_menu = InlineKeyboardMarkup()
 inline_kb_menu.add(inline_button_create)
 inline_kb_menu.row(inline_button_read_my, inline_button_read)
 
+"""
+    Menu markup (Keyboard)
+"""
+keyboard_button_my = KeyboardButton(MY_TASKS_COMMAND)
+keyboard_button_control = KeyboardButton(CONTROL_TASKS_COMMAND)
+keyboard_kb_menu = ReplyKeyboardMarkup(resize_keyboard=True)
+keyboard_kb_menu.row(keyboard_button_my, keyboard_button_control)
+
+"""
+    Tasks markup
+"""
 
 def get_task_button(text, idx):
     final_text = text[:50]

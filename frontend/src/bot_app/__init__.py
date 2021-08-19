@@ -1,5 +1,8 @@
 from . app import dp
-from . handlers import *
+# from . handlers import *
+# Handlers
+from . menu import *
+
 from . group_handlers import *
 
 
