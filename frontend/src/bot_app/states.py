@@ -39,5 +39,6 @@ class CreateS(StatesGroup):
     """
     add_comment = State()
     read_comments_awaiting_idx = State()
+    read_comments = State()
     read_comment = State()
     delete_comment = State()

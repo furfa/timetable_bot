@@ -12,6 +12,7 @@ from . app import dp, bot
 from . commands import *
 from . states import CreateS
 from . keyboards import *
+from . tools import alias_to_id
 
 
 @dp.message_handler(ChatTypeFilter('private'), commands="help")
@@ -43,27 +44,7 @@ async def return_to_menu(state : FSMContext):
 @dp.message_handler(ChatTypeFilter('private'), commands=["start", "menu"], state="*")
 async def menu_handler(message: types.Message, state : FSMContext):
     await state.update_data(chat_id=message.chat.id)
-    await state.update_data(user_id=message.from_user.id)
+    await state.update_data(user_id=alias_to_id(message.from_user.username))
     await return_to_menu(state=state)
 
-
-@dp.message_handler(ChatTypeFilter('private'), state=CreateS.menu)
-async def handle_menu(message : types.Message, state : FSMContext):
-    async with state.proxy() as data:
-        menu_message_id = data['menu_message_id']
-        chat_id = data['chat_id']
-    await bot.delete_message(chat_id=chat_id, message_id=menu_message_id)
-    task_type = message.text
-    if task_type not in (MY_TASKS_COMMAND, CONTROL_TASKS_COMMAND):
-        await return_to_menu(state=state)
-        return
-    
-    await state.update_data(task_type=task_type)
-    if task_type == MY_TASKS_COMMAND:
-        pass #TODO
-    elif task_type == CONTROL_TASKS_COMMAND:
-        pass #TODO
-    else:
-        await return_to_menu(state=state)
-        return
 
