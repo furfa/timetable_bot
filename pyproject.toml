@@ -13,6 +13,7 @@ django-filter = "^2.4.0"
 aiogram = "^2.14.3"
 parse = "^1.19.0"
 Telethon = "^1.23.0"
+aiohttp = "^3.7.4"
 
 [tool.poetry.dev-dependencies]
 

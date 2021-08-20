@@ -51,10 +51,10 @@ async def read_all_tasks(state : FSMContext):
     tasks = []
     if task_type == 'control':
         # await CreateS.read_control_awaiting_idx.set()
-        tasks = read_control_tasks_db(user_id)
+        tasks = await read_control_tasks_db(user_id)
     elif task_type == 'my':
         # await CreateS.read_my_awaiting_idx.set()
-        tasks = read_my_tasks_db(user_id)
+        tasks = await read_my_tasks_db(user_id)
     await read_tasks(tasks=tasks, state=state)
     
 
@@ -95,7 +95,7 @@ async def read_comments(state : FSMContext):
         user_id = data['user_id']
         chat_id = data['chat_id']
         to_edit = data['to_edit']
-    comments = read_comments_db(idx=idx, user_id=user_id)
+    comments = await read_comments_db(idx=idx, user_id=user_id)
     if not comments:
         await bot.edit_message_text(chat_id=chat_id, message_id=to_edit.message_id, text=to_edit.text + '\n\nНет комментариев')
         await bot.edit_message_reply_markup(chat_id=chat_id, message_id=to_edit.message_id, reply_markup=to_edit.reply_markup)
@@ -104,7 +104,8 @@ async def read_comments(state : FSMContext):
         # await return_to_menu(state=state)
     for comment in comments:
         await bot.send_message(chat_id, comment)
-    await CreateS.previous()
+    # await CreateS.previous()
+    await return_to_menu(state=state)
 
 async def add_comment(state : FSMContext):
     async with state.proxy() as data:
@@ -118,12 +119,12 @@ async def add_comment(state : FSMContext):
 @dp.message_handler(ChatTypeFilter('private'), state=CreateS.add_comment)
 async def handle_add_comment(message : types.Message, state : FSMContext):
     async with state.proxy() as data:
-        data['comment'] = message.text
+        data['comment'] = f"{message.from_user.first_name} {message.from_user.last_name}: {message.text}"
         idx = data['idx']
         user_id = data['user_id']
-        add_comment_db(idx=idx, user_id=user_id, comment=data['comment'])
-    await CreateS.previous()
-    # await return_to_menu(state=state)
+        await add_comment_db(idx=idx, user_id=user_id, comment=data['comment'])
+    # await CreateS.previous()
+    await return_to_menu(state=state)
 
 @dp.callback_query_handler(state=CreateS.read_my_menu)
 async def read_my_menu_callback(callback_query : types.CallbackQuery, state : FSMContext):
@@ -131,6 +132,7 @@ async def read_my_menu_callback(callback_query : types.CallbackQuery, state : FS
     chat_id = callback_query.from_user.id
     idx = int(callback_query.data.split('_')[-1])
     await state.update_data(idx=idx)
+    await state.update_data(to_edit=callback_query.message)
     if callback_query.data.startswith('add_comment_'):
         await CreateS.add_comment.set()
         await add_comment(state=state)
@@ -140,6 +142,16 @@ async def read_my_menu_callback(callback_query : types.CallbackQuery, state : FS
         await read_comments(state=state)
     else:
         await return_to_menu(state=state)
+
+async def delete_task(state : FSMContext):
+    async with state.proxy() as data:
+        chat_id = data['chat_id']
+        idx = data['idx']
+        to_edit = data['to_edit']
+    await delete_task_db(idx=idx)
+    await bot.delete_message(chat_id, to_edit.message_id)
+    await state.update_data(menu_title="Задача удалена")
+    await return_to_menu(state=state)
 
 @dp.callback_query_handler(state=CreateS.read_control_menu)
 async def read_control_menu_callback(callback_query : types.CallbackQuery, state : FSMContext):
@@ -152,13 +164,7 @@ async def read_control_menu_callback(callback_query : types.CallbackQuery, state
         await CreateS.update.set()
         await bot.send_message(chat_id, "Выберите параметр для изменения", reply_markup=inline_kb_update)
     elif callback_query.data.startswith('delete_'):
-        status = delete_task_db(idx=idx)
-        if status:
-            await state.update_data(menu_title="Задача удалена")
-        else:
-            await state.update_data(menu_title="Задача не найдена")
-        
-        await return_to_menu(state=state)
+        await delete_task(state=state)
         return
     elif callback_query.data.startswith('add_comment_'):
         await CreateS.add_comment.set()

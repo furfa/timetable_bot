@@ -197,7 +197,7 @@ async def read_comments(chat_id : int, state : FSMContext):
     async with state.proxy() as data:
         idx = data['idx']
         user_id = data['user_id']
-    comments = read_comments_db(idx=idx, user_id=user_id)
+    comments = await read_comments_db(idx=idx, user_id=user_id)
     if not comments:
         await empty_list(chat_id=chat_id)
         return
@@ -244,7 +244,7 @@ async def read_comments_callback(callback_query : types.CallbackQuery, state : F
             comments_page = data['comments_page']
             user_id = data['user_id']
             idx = data['idx']
-        comments = read_comments_db(idx=idx, user_id=user_id)
+        comments = await read_comments_db(idx=idx, user_id=user_id)
         if callback_query.data == 'menu':
             await return_to_menu(chat_id=chat_id)
         elif callback_query.data == 'next':

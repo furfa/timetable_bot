@@ -62,6 +62,8 @@ def task_view(request):
         return Response(serialized_task.data)
 
     if request.method == 'POST':
+        print(request.data)
+
         serializer = TaskSerializer(data=request.data)
         
         if serializer.is_valid():

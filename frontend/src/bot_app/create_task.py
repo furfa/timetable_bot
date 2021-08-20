@@ -56,7 +56,8 @@ def parse_date(date_raw : str):
     if date is not None:
         return date
     try:
-        date = datetime.strptime(date_raw, "%d.%m") 
+        date = datetime.strptime(date_raw, "%d.%m")
+        date = date.replace(year=2021)
     except Exception as e:
         pass
     return date
@@ -68,7 +69,26 @@ async def handle_creation(message : types.Message, state : FSMContext):
     chat_id = message.chat.id
     await state.update_data(user_id=user_id)
     await state.update_data(chat_id=chat_id)
-    fields = parse(". {} @{} @{} {}", raw_text).fixed
+    fields = []
+    try:
+        parsed = parse(". {} @{} @{} {}", raw_text)
+        fields = parsed.fixed
+    except Exception as e:
+        menu_title = """
+Для добавления задачи напишите
+. [Описание] @[исполнитель] @[контролирующий] [дата]
+
+Формат даты:
+ДД.ММ
+или
+ММ:ЧЧ ДД.ММ.ГГГГ
+
+Пример
+. Необходимо сделать работу @worker @boss 20.08
+        """
+        await state.update_data(menu_title=menu_title)
+        await return_to_menu(state=state)
+        return
     if len(fields) < 4:
         state.update_data(menu_title="Некорректная команда")
         await return_to_menu(state=state)
@@ -83,7 +103,7 @@ async def handle_creation(message : types.Message, state : FSMContext):
     worker = await username_to_id(fields[1])
     creator = await username_to_id(fields[2])
 
-    idx = create_task_db(description=description, deadline=date, worker=worker, creator=creator)
+    idx = await create_task_db(description=description, deadline=date, worker=worker, creator=creator)
 
     await state.update_data(idx=idx)
     await state.update_data(description=description)
