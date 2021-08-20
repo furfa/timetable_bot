@@ -115,8 +115,12 @@ def task_detail_view(request, pk:int):
         task.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-@api_view(['POST'])
+@api_view(['GET', 'POST'])
 def task_view(request):
+
+    if request.method == 'GET':
+        serialized_task = TaskSerializer( models.Task.objects.all(), many=True)
+        return Response(serialized_task.data)
 
     if request.method == 'POST':
         serializer = TaskSerializer(data=request.data)
@@ -143,12 +147,27 @@ def user_view(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
-def user_tasks_view(request, telegram_id):
+def user_tasks_view(request, telegram_id, creator=True):
     try:
         user = models.TelegramAccount.objects.get(telegram_id=telegram_id).user
     except models.TelegramAccount.DoesNotExist:
         return Response(status=404)
 
     if request.method == "GET":
-        serializer = TaskSerializer(user.created_tasks.all(), many=True)
+        tasks = []
+
+        if creator:
+            tasks = user.created_tasks.all()
+        else:
+            tasks = user.worked_tasks.all()
+
+        serializer = TaskSerializer(tasks, many=True)
+
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+def user_creator_tasks_view(request, telegram_id):
+    return user_tasks_view(request, telegram_id, creator=True)
+
+def user_worker_tasks_view(request, telegram_id):
+    return user_tasks_view(request, telegram_id, creator=False)
+

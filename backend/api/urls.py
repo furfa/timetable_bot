@@ -23,5 +23,6 @@ urlpatterns = [
     path('task/', task_views.task_view),
     path('task/<int:pk>', task_views.task_detail_view),
     path('user/', task_views.user_view),
-    path('user_tasks/<int:telegram_id>', task_views.user_tasks_view),
+    path('user_creator_tasks/<int:telegram_id>', task_views.user_creator_tasks_view),
+    path('user_worker_tasks/<int:telegram_id>', task_views.user_worker_tasks_view)
 ]
