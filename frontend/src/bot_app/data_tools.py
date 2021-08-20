@@ -41,6 +41,7 @@ def create_task_db(
             comments=[]
         )
     )
+    return data[-1].idx
 
 def read_my_tasks_db(user_id : int):
     returnable = []

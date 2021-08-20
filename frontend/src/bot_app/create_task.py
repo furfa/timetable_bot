@@ -8,18 +8,20 @@ from aiogram.types import chat, message, user
 from datetime import datetime
 from parse import *
 
-from . app import dp
+from . app import dp, bot
 
 from . menu import return_to_menu
 from . data_tools import create_task_db
-from . tools import alias_to_id
+from . tools import alias_to_id, username_to_id
 
 
 @dp.message_handler(ChatTypeFilter('private'), lambda m: m.text.startswith('.'), state="*")
 async def handle_creation(message : types.Message, state : FSMContext):
     raw_text = message.text
-
-    await state.update_data(chat_id=message.chat.id)
+    user_id = await username_to_id(message.from_user.id)
+    chat_id = message.chat.id
+    await state.update_data(user_id=user_id)
+    await state.update_data(chat_id=chat_id)
     fields = parse(". {} @{} @{} {}", raw_text).fixed
     if len(fields) < 4:
         state.update_data(menu_title="Некорректная команда")
@@ -33,9 +35,16 @@ async def handle_creation(message : types.Message, state : FSMContext):
         return
     
     description = fields[0]
-    worker = alias_to_id(fields[1])
-    creator = alias_to_id(fields[2])
+    worker = await username_to_id(fields[1])
+    creator = await username_to_id(fields[2])
     
-    create_task_db(description=description, deadline=date, worker=worker, creator=creator)
-    await state.update_data(menu_title="Задача создана")
+    idx = create_task_db(description=description, deadline=date, worker=worker, creator=creator)
+    await bot.send_message(chat_id, f"""
+Номер: {idx}
+Описание: {description}
+Дедлайн: {date}
+Исполнитель: @{fields[1]}
+Контролирующий: @{fields[2]}
+"""
+    )
     await return_to_menu(state=state)

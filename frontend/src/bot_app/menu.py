@@ -12,7 +12,7 @@ from . app import dp, bot
 from . commands import *
 from . states import CreateS
 from . keyboards import *
-from . tools import alias_to_id
+from . tools import alias_to_id, username_to_id
 
 
 @dp.message_handler(ChatTypeFilter('private'), commands="help")
@@ -43,8 +43,9 @@ async def return_to_menu(state : FSMContext):
 
 @dp.message_handler(ChatTypeFilter('private'), commands=["start", "menu"], state="*")
 async def menu_handler(message: types.Message, state : FSMContext):
+    user_id = await username_to_id(message.from_user.username)
     await state.update_data(chat_id=message.chat.id)
-    await state.update_data(user_id=alias_to_id(message.from_user.username))
+    await state.update_data(user_id=user_id)
     await return_to_menu(state=state)
 
 
