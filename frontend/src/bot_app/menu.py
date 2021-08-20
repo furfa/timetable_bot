@@ -37,6 +37,7 @@ async def return_to_menu(state : FSMContext):
         menu_title = 'Выберите тип задачи'
         if 'menu_title' in data:
             menu_title = data['menu_title']
+            del data['menu_title']
     message = await bot.send_message(chat_id, menu_title, reply_markup=keyboard_kb_menu)
     await state.update_data(menu_message_id=message.message_id)
 
