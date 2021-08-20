@@ -11,6 +11,8 @@ Markdown = "^3.3.4"
 Django = "^3.2.6"
 django-filter = "^2.4.0"
 aiogram = "^2.14.3"
+parse = "^1.19.0"
+Telethon = "^1.23.0"
 
 [tool.poetry.dev-dependencies]
 
