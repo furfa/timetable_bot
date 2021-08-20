@@ -1,7 +1,4 @@
-from django.http.response import HttpResponse, JsonResponse
-from django.shortcuts import render
 from django.contrib.auth.models import User
-from django.shortcuts import get_object_or_404
 
 from rest_framework import serializers
 from rest_framework.views import APIView
@@ -10,82 +7,8 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from . import models
+from .serializers import *
 
-class UserSerializer(serializers.Serializer):
-    telegram_id = serializers.IntegerField()
-
-    def to_representation(self, value):
-        
-        if isinstance(value, User):
-
-            return {
-                "telegram_id": value.telegram_account.telegram_id
-            }
-
-        raise Exception('Unexpected type of user ')
-
-    def create(self, validated_data):
-        
-
-        user = User.objects.create(username=validated_data["telegram_id"])
-
-        tg_acc = models.TelegramAccount.objects.create(user=user, telegram_id=validated_data["telegram_id"])
-        return user
-
-    def update(self, instance, validated_data):
-        new_tg_acc = models.TelegramAccount.objects.create(telegram_id=validated_data["telegram_id"])
-
-        instance.telegram_account = new_tg_acc
-        instance.save()
-        return instance
-
-class TaskSerializer(serializers.ModelSerializer):
-    creator = UserSerializer()
-    worker = UserSerializer()
-
-    def update(self, instance, validated_data):
-        try:
-            creator = validated_data.pop("creator")
-            instance.creator = models.TelegramAccount.objects.get(telegram_id=creator["telegram_id"] ).user
-        except KeyError:
-            pass
-        except models.TelegramAccount.DoesNotExist as e:
-            raise e
-        
-        try:
-            worker = validated_data.pop("worker")
-            instance.worker = models.TelegramAccount.objects.get(telegram_id=worker["telegram_id"] ).user
-        except KeyError:
-            pass
-        except models.TelegramAccount.DoesNotExist as e:
-            raise e
-
-        instance.save()
-
-        return super().update(instance, validated_data)
-    def create(self, validated_data):
-        creator = validated_data.pop("creator")
-        worker = validated_data.pop("worker")
-
-        task = super().create(validated_data) 
-
-        if creator_telegram_id := creator.get("telegram_id"):
-            task.creator = models.TelegramAccount.objects.get(telegram_id=creator_telegram_id ).user
-        else:
-            raise ValueError
-
-        if worker_telegram_id := worker.get("telegram_id"):
-            task.worker = models.TelegramAccount.objects.get(telegram_id=worker_telegram_id ).user
-        else: 
-            raise ValueError
-
-        task.save()
-
-        return task
-    class Meta:
-        model = models.Task
-        fields = ["pk", "description", "creation_date", "deadline", "done", "creator", "worker"]
-        
 
 @api_view(['GET', 'DELETE', 'PUT'])
 def task_detail_view(request, pk:int):
@@ -115,6 +38,22 @@ def task_detail_view(request, pk:int):
         task.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+
+@api_view(['GET', 'POST'])
+def user_view(request):
+    if request.method == 'GET':
+        serialized_users = UserSerializer(User.objects.all(), many=True)
+        return Response(serialized_users.data, status=status.HTTP_200_OK)
+
+    if request.method == 'POST':
+        serializer = UserSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 @api_view(['GET', 'POST'])
 def task_view(request):
 
@@ -132,19 +71,6 @@ def task_view(request):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(['GET', 'POST'])
-def user_view(request):
-    if request.method == 'GET':
-        serialized_users = UserSerializer(User.objects.all(), many=True)
-        return Response(serialized_users.data, status=status.HTTP_200_OK)
-
-    if request.method == 'POST':
-        serializer = UserSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-    
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
 def user_tasks_view(request, telegram_id, creator=True):
@@ -171,3 +97,26 @@ def user_creator_tasks_view(request, telegram_id):
 def user_worker_tasks_view(request, telegram_id):
     return user_tasks_view(request, telegram_id, creator=False)
 
+@api_view(['GET', 'POST'])
+def task_comments(request, pk):
+    try:
+        task = models.Task.objects.get(pk=pk)
+    except models.Task.DoesNotExist:
+        return Response(status=404)
+
+    if request.method == 'GET':
+        comments = []
+
+        if task.comments:
+            comments = task.comments.all()
+
+        serialized_comments = CommentSerializer(comments, many=True)
+        return Response(serialized_comments.data, status=status.HTTP_200_OK)
+
+    if request.method == 'POST':
+        serializer_comment = CommentSerializer(data={**request.data, "task": TaskSerializer(task).data}  )
+
+        if serializer_comment.is_valid():
+            serializer_comment.save()
+
+            return Response(serializer_comment.data, status=status.HTTP_201_CREATED)
