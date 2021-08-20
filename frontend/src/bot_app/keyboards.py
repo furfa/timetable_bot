@@ -4,6 +4,7 @@ from aiogram.utils.mixins import T
 
 
 from . data_tools import Task
+from . commands import *
 
 
 """
@@ -14,7 +15,7 @@ inline_kb_skip = InlineKeyboardMarkup()
 inline_kb_skip.add(inline_button_skip)
 
 """
-    Menu markup
+    Menu markup (Inline)
 """
 inline_button_create = InlineKeyboardButton("Новая задача", callback_data='create')
 inline_button_read_my = InlineKeyboardButton("Мои задачи", callback_data='read_my')
@@ -23,6 +24,17 @@ inline_kb_menu = InlineKeyboardMarkup()
 inline_kb_menu.add(inline_button_create)
 inline_kb_menu.row(inline_button_read_my, inline_button_read)
 
+"""
+    Menu markup (Keyboard)
+"""
+keyboard_button_my = KeyboardButton(MY_TASKS_COMMAND)
+keyboard_button_control = KeyboardButton(CONTROL_TASKS_COMMAND)
+keyboard_kb_menu = ReplyKeyboardMarkup(resize_keyboard=True)
+keyboard_kb_menu.row(keyboard_button_my, keyboard_button_control)
+
+"""
+    Tasks markup
+"""
 
 def get_task_button(text, idx):
     final_text = text[:50]
@@ -46,19 +58,19 @@ def get_tasks_markup(tasks_list : list[Task], page=0, step=3):
 """
     Task menu markup
 """
-inline_button_task_update = InlineKeyboardButton("Редактировать", callback_data='update')
-inline_button_task_delete = InlineKeyboardButton("Завершить", callback_data='delete')
-inline_button_task_comments = InlineKeyboardButton("Комментарии", callback_data='comments')
-inline_button_task_add_comment = InlineKeyboardButton("Новый комментарий", callback_data='add_comment')
 
-inline_kb_control_task = InlineKeyboardMarkup()
-inline_kb_my_task = InlineKeyboardMarkup()
+def get_task_markup(task_permissions : str, idx : int):
+    # inline_button_task_update = InlineKeyboardButton("Редактировать", callback_data=f'update_{idx}')
+    inline_button_task_delete = InlineKeyboardButton("Завершить", callback_data=f'delete_{idx}')
+    inline_button_task_comments = InlineKeyboardButton("Комментарии", callback_data=f'comments_{idx}')
+    inline_button_task_add_comment = InlineKeyboardButton("Новый комментарий", callback_data=f'add_comment_{idx}')
 
-inline_kb_control_task.row(inline_button_task_comments, inline_button_task_add_comment)
-inline_kb_control_task.add(inline_button_task_update, inline_button_task_delete)
-inline_kb_my_task.row(inline_button_task_comments, inline_button_task_add_comment)
+    inline_kb_control_task = InlineKeyboardMarkup()
+    inline_kb_my_task = InlineKeyboardMarkup()
 
-def get_task_markup(task_permissions):
+    inline_kb_control_task.row(inline_button_task_comments, inline_button_task_add_comment)
+    inline_kb_control_task.add(inline_button_task_delete)
+    inline_kb_my_task.row(inline_button_task_comments, inline_button_task_add_comment)
     if task_permissions == 'control':
         return inline_kb_control_task
     elif task_permissions == 'my':
