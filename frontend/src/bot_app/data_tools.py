@@ -13,7 +13,7 @@ class Task:
         self,
         description : str,
         deadline,
-        worker      : str,
+        worker      : int,
         creator     : int,
         comments    : list[str]
     ) -> None:
@@ -29,28 +29,33 @@ data = []
 def create_task_db(
         description : str,
         deadline,
-        worker      : str,
+        worker      : int,
         creator     : int,
-        comment     : str
 ):
-    comments = []
-    if comment != '':
-        comments.append(comment)
     data.append(
         Task(
             description=description,
             deadline=deadline,
             worker=worker,
             creator=creator,
-            comments=comments
+            comments=[]
         )
     )
+    return data[-1].idx
 
 def read_my_tasks_db(user_id : int):
-    return data
+    returnable = []
+    for task in data:
+        if task.worker == user_id:
+            returnable.append(task)
+    return returnable
 
 def read_control_tasks_db(user_id : int):
-    return data
+    returnable = []
+    for task in data:
+        if task.creator == user_id:
+            returnable.append(task)
+    return returnable
 
 def read_task_db(idx : int):
     for task in data:
@@ -73,7 +78,7 @@ def update_deadline_db(idx : int, user_id : int, deadline):
             task.deadline = deadline
             break
 
-def update_worker_db(idx : int, user_id : int, worker : str):
+def update_worker_db(idx : int, user_id : int, worker : int):
     for task in data:
         if task.idx == idx and task.creator == user_id:
             task.worker = worker

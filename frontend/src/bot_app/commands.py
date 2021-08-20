@@ -14,3 +14,9 @@ READ_MY_TASK_COMMAND = 'my_tasks'
 UPDATE_TASK_COMMAND = 'update_task'
 
 DELETE_TASK_COMMAND = 'delete_task'
+
+"""
+    Menu commands
+"""
+MY_TASKS_COMMAND = "Мои задачи"
+CONTROL_TASKS_COMMAND = "Задачи на контроле"
