@@ -22,4 +22,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('task/', task_views.task_view),
     path('task/<int:pk>', task_views.task_detail_view),
+    path('user/', task_views.user_view),
+    path('user_tasks/<int:telegram_id>', task_views.user_tasks_view),
 ]
