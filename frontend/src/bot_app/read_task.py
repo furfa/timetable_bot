@@ -99,7 +99,7 @@ async def read_comments(state : FSMContext):
     comments = await read_comments_db(idx=idx, user_id=user_id)
     if not comments:
         await bot.edit_message_text(chat_id=chat_id, message_id=to_edit.message_id, text=to_edit.text + '\n\nНет комментариев')
-        await bot.edit_message_reply_markup(chat_id=chat_id, message_id=to_edit.message_id, reply_markup=to_edit.reply_markup)
+        await bot.edit_message_reply_markup(chat_id=chat_id, message_id=to_edit.message_id)
         # await bot.send_message(chat_id, "Нет комментариев")
         # await state.update_data(menu_title="Нет комментариев")
         # await return_to_menu(state=state)
@@ -115,7 +115,7 @@ async def add_comment(state : FSMContext):
         chat_id = data['chat_id']
         to_edit = data['to_edit']
     await bot.edit_message_text(chat_id=chat_id, message_id=to_edit.message_id, text=to_edit.text + '\n\nВведите комментарий')
-    await bot.edit_message_reply_markup(chat_id=chat_id, message_id=to_edit.message_id, reply_markup=to_edit.reply_markup)
+    await bot.edit_message_reply_markup(chat_id=chat_id, message_id=to_edit.message_id)
 
 @dp.message_handler(ChatTypeFilter('private'), state=CreateS.add_comment)
 async def handle_add_comment(message : types.Message, state : FSMContext):
@@ -166,7 +166,7 @@ async def delete_task(state : FSMContext, delete_from : str):
             await task_closed_by_creator(state=state)
         else:
             await task_closed_by_worker(state=state)
-        await state.update_data(menu_title="Задача удалена")
+        await state.update_data(menu_title="Задача завершена")
     except Exception as e:
         await state.update_data(menu_title="Попросите пользователей зарегистрироваться в боте 😡")
     await return_to_menu(state=state)
