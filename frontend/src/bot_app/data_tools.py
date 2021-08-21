@@ -34,6 +34,7 @@ class Task:
         self.worker = worker
         self.creator = creator
         self.comments = comments
+        self.status = 0
 
 data = []
 
@@ -77,6 +78,9 @@ async def read_tasks_db_by_type(user_id : int, task_type : str):
     async with aiohttp.ClientSession() as session:
         headers = {'content-type': 'application/json'}
         async with session.get(DEFAULT_URL + f'user_{task_type}_tasks/{user_id}', headers=headers) as resp:
+            status = resp.status
+            if status == 404:
+                print('Catched 404 fuck yeah')
             back_tasks = await resp.json()
         tasks = []
         for item in back_tasks:
@@ -117,6 +121,7 @@ async def read_task_db(idx : int):
                 creator=response['creator']['telegram_id'],
                 comments=comments
             )
+    task.status = response['status']
     return task
 
 def update_task_db():
@@ -177,7 +182,27 @@ async def delete_task_db(idx : int):
     async with aiohttp.ClientSession() as session:
         headers = {'content-type': 'application/json'}
         content = {
-            'done': True
+            'status': 2
+        }
+        async with session.put(DEFAULT_URL + f'task/{idx}', json=content, headers=headers) as resp:
+            task = await resp.json()
+            print(task)
+
+async def wait_approve_task_db(idx : int):
+    async with aiohttp.ClientSession() as session:
+        headers = {'content-type': 'application/json'}
+        content = {
+            'status': 1
+        }
+        async with session.put(DEFAULT_URL + f'task/{idx}', json=content, headers=headers) as resp:
+            task = await resp.json()
+            print(task)
+
+async def reject_approve_task_db(idx : int):
+    async with aiohttp.ClientSession() as session:
+        headers = {'content-type': 'application/json'}
+        content = {
+            'status': 0
         }
         async with session.put(DEFAULT_URL + f'task/{idx}', json=content, headers=headers) as resp:
             task = await resp.json()

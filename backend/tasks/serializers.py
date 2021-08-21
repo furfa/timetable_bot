@@ -4,6 +4,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth.models import User
+from pprint import pprint
 
 from . import models
 
@@ -13,17 +14,21 @@ class UserSerializer(serializers.Serializer):
 
     def to_representation(self, value):
         if isinstance(value, User):
-
-            return {
-                "telegram_id": value.telegram_account.telegram_id
-            }
+            try:
+                return {
+                    "telegram_id": value.telegram_account.telegram_id
+                }
+            except models.TelegramAccount.DoesNotExist:
+                return {
+                    "telegram_id": None
+                }
 
         raise Exception('Unexpected type of user ')
 
     def create(self, validated_data):
-        user = User.objects.create(username=validated_data["telegram_id"])
+        user, status1 = User.objects.get_or_create(username=validated_data["telegram_id"])
 
-        tg_acc = models.TelegramAccount.objects.create(user=user, telegram_id=validated_data["telegram_id"])
+        tg_acc, status2 = models.TelegramAccount.objects.get_or_create(user=user, telegram_id=validated_data["telegram_id"])
         return user
 
     def update(self, instance, validated_data):
@@ -78,24 +83,24 @@ class TaskSerializer(serializers.ModelSerializer):
         return task
     class Meta:
         model = models.Task
-        fields = ["pk", "description", "creation_date", "deadline", "done", "creator", "worker"]
+        fields = ["pk", "description", "creation_date", "deadline", "status", "creator", "worker"]
 
 class CommentSerializer(serializers.ModelSerializer):
     creator = UserSerializer()
-    task = TaskSerializer()
+    task = TaskSerializer(read_only=True)
 
     def create(self, validated_data):
+        pprint(validated_data)
         creator = validated_data.pop("creator")
-        task = validated_data.pop("task")
+
+        task = validated_data.pop("task_object")
 
         comment = super().create(validated_data)
 
         if creator_telegram_id := creator.get("telegram_id"):
             comment.creator = models.TelegramAccount.objects.get(telegram_id=creator_telegram_id ).user
 
-
-        print(task)
-        comment.task = models.Task.objects.get(description=task["description"])  # TODO: Надо делать по pk почему-о его нет в дикте
+        comment.task = task 
 
         comment.save()
         

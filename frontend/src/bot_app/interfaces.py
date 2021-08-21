@@ -8,7 +8,7 @@ MENU_INTERFACE = [
 CONTROL_MENU_INTERFACE = [
     'update',
     'delete',
-    'add_comment',
+    'add-comment',
     'comments'
 ]
 

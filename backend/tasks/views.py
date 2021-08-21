@@ -6,6 +6,8 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 
+from loguru import logger
+
 from . import models
 from .serializers import *
 
@@ -85,9 +87,9 @@ def user_tasks_view(request, telegram_id, creator=True):
         tasks = []
 
         if creator:
-            tasks = user.created_tasks.filter(done=False)
+            tasks = user.created_tasks.filter(status=0)
         else:
-            tasks = user.worked_tasks.filter(done=False)
+            tasks = user.worked_tasks.filter(status=0)
 
         serializer = TaskSerializer(tasks, many=True)
 
@@ -116,9 +118,13 @@ def task_comments(request, pk):
         return Response(serialized_comments.data, status=status.HTTP_200_OK)
 
     if request.method == 'POST':
-        serializer_comment = CommentSerializer(data={**request.data, "task": TaskSerializer(task).data}  )
+        serializer_comment = CommentSerializer(data=request.data)
 
         if serializer_comment.is_valid():
-            serializer_comment.save()
+            serializer_comment.save(task_object=task)
+
+            pprint(serializer_comment.data)
 
             return Response(serializer_comment.data, status=status.HTTP_201_CREATED)
+
+        return Response(status=status.HTTP_400_BAD_REQUEST)

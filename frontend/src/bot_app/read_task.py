@@ -17,12 +17,17 @@ from . keyboards import *
 from . menu import return_to_menu
 from . interfaces import *
 from . tools import id_to_username, username_to_id
-from . notiflicate import task_closed_by_creator, task_closed_by_worker
+from . notiflicate import task_closed_by_creator, task_closed_by_worker, send_shadow
+from . writing_tools import format_task_card_text, format_task_card_markup, get_emoji_by_idx
 
 command_to_type = {
     MY_TASKS_COMMAND: "my",
     CONTROL_TASKS_COMMAND: "control"
 }
+
+MY_TASKS_MENU = ['my-delete', 'add-comment'] 
+CONTROL_TASKS_MENU = ['control-delete', 'add-comment'] 
+
 
 @dp.message_handler(ChatTypeFilter('private'), lambda m: m.text in (MY_TASKS_COMMAND, CONTROL_TASKS_COMMAND), state="*")
 async def handle_menu(message : types.Message, state : FSMContext):
@@ -32,11 +37,11 @@ async def handle_menu(message : types.Message, state : FSMContext):
     user_id = message.from_user.id
     await state.update_data(chat_id=chat_id)
     await state.update_data(user_id=user_id)
-    if menu_message_id is not None:
-        try:
-            await bot.delete_message(chat_id=chat_id, message_id=menu_message_id)
-        except Exception as e:
-            pass
+    # if menu_message_id is not None:
+    #     try:
+    #         await bot.delete_message(chat_id=chat_id, message_id=menu_message_id)
+    #     except Exception as e:
+    #         pass
     task_type = message.text
 
     task_type = command_to_type[task_type]
@@ -66,26 +71,34 @@ async def read_tasks(tasks, state : FSMContext):
     if not tasks:
         await state.update_data(menu_title="Список пуст")
         await return_to_menu(state=state)
+        return
     for task in tasks:
         idx = task.idx
         custom_markup = None
+        task_permissions = 'my'
         if task_type == 'control':
-            custom_markup = get_task_markup(task_permissions='control', idx=idx)
+            task_permissions = 'control'
             await CreateS.read_control_menu.set()
         elif task_type == 'my':
-            custom_markup = get_task_markup(task_permissions='my', idx=idx)
+            task_permissions = 'my'
             await CreateS.read_my_menu.set()
         worker_username = await id_to_username(task.worker)
         creator_username = await id_to_username(task.creator)
-        message = await bot.send_message(chat_id, f"""
-Номер: {task.idx}
-Описание: {task.description}
-Дедлайн: {task.deadline}
-Исполнитель: @{worker_username}
-Контролирующий: @{creator_username}
-""", reply_markup=custom_markup
-    )
-
+        message_text = format_task_card_text(
+            idx=task.idx,
+            description=task.description,
+            deadline=task.deadline,
+            worker_username=worker_username,
+            creator_username=creator_username,
+        )
+        comments_text = '\n'.join(['==================='] + task.comments)
+        custom_markup = format_task_card_markup(
+            idx=idx,
+            task_permissions=task_permissions
+        )
+        message = await bot.send_message(chat_id, message_text + comments_text, reply_markup=custom_markup)
+    await send_shadow(chat_id=chat_id)
+    
 """
     Read task info
 """
@@ -97,16 +110,22 @@ async def read_comments(state : FSMContext):
         chat_id = data['chat_id']
         to_edit = data['to_edit']
     comments = await read_comments_db(idx=idx, user_id=user_id)
+    comments_text = '\n'.join(['==================='] + comments)
     if not comments:
-        await bot.edit_message_text(chat_id=chat_id, message_id=to_edit.message_id, text=to_edit.text + '\n\nНет комментариев')
-        await bot.edit_message_reply_markup(chat_id=chat_id, message_id=to_edit.message_id)
-        # await bot.send_message(chat_id, "Нет комментариев")
-        # await state.update_data(menu_title="Нет комментариев")
-        # await return_to_menu(state=state)
-    for comment in comments:
-        await bot.send_message(chat_id, comment)
+        await bot.edit_message_text(chat_id=chat_id, message_id=to_edit.message_id, text=to_edit.text + '\n\nНет комментариев', reply_markup=to_edit.reply_markup)
+        # await bot.edit_message_reply_markup(chat_id=chat_id, message_id=to_edit.message_id, reply_markup=None)
+    else:
+        task = await read_task_db(idx=idx)
+        message_text = format_task_card_text(
+            idx=idx,
+            description=task.description,
+            deadline=task.deadline,
+            worker_username=await id_to_username(task.worker),
+            creator_username=await id_to_username(task.creator)
+        )
+        await bot.edit_message_text(chat_id=chat_id, message_id=to_edit.message_id, text=message_text + comments_text, reply_markup=to_edit.reply_markup)
     # await CreateS.previous()
-    await return_to_menu(state=state)
+    # await return_to_menu(state=state)
 
 async def add_comment(state : FSMContext):
     async with state.proxy() as data:
@@ -114,8 +133,10 @@ async def add_comment(state : FSMContext):
         user_id = data['user_id']
         chat_id = data['chat_id']
         to_edit = data['to_edit']
-    await bot.edit_message_text(chat_id=chat_id, message_id=to_edit.message_id, text=to_edit.text + '\n\nВведите комментарий')
-    await bot.edit_message_reply_markup(chat_id=chat_id, message_id=to_edit.message_id)
+    message = await bot.send_message(chat_id, f"{get_emoji_by_idx(idx)} Введите комментарий к задаче {idx}")
+    await state.update_data(to_delete_last=message.message_id)
+    # await bot.edit_message_text(chat_id=chat_id, message_id=to_edit.message_id, text=to_edit.text + '\n\nВведите комментарий', reply_markup=to_edit.reply_markup)
+    # await bot.edit_message_reply_markup(chat_id=chat_id, message_id=to_edit.message_id, reply_markup=None)
 
 @dp.message_handler(ChatTypeFilter('private'), state=CreateS.add_comment)
 async def handle_add_comment(message : types.Message, state : FSMContext):
@@ -123,21 +144,34 @@ async def handle_add_comment(message : types.Message, state : FSMContext):
         data['comment'] = f"{message.from_user.first_name} {message.from_user.last_name}: {message.text}"
         idx = data['idx']
         user_id = data['user_id']
-        await add_comment_db(idx=idx, user_id=user_id, comment=data['comment'])
-    # await CreateS.previous()
-    await return_to_menu(state=state)
+        to_delete_last = data['to_delete_last']
+    await add_comment_db(idx=idx, user_id=user_id, comment=data['comment'])
+    await bot.delete_message(chat_id=user_id, message_id=message.message_id)
+    await bot.delete_message(chat_id=user_id, message_id=to_delete_last)
+    await read_comments(state=state)
+    await CreateS.previous()
+    # await return_to_menu(state=state)
 
-@dp.callback_query_handler(state=CreateS.read_my_menu)
+@dp.callback_query_handler(lambda c: c.data.split('_')[0] in MY_TASKS_MENU, state="*")
 async def read_my_menu_callback(callback_query : types.CallbackQuery, state : FSMContext):
+    if state != CreateS.read_my_menu:
+        await state.update_data(chat_id=callback_query.from_user.id)
+        await state.update_data(user_id=callback_query.from_user.id)
+        await CreateS.read_my_menu.set()
     # await bot.answer_callback_query(callback_query.id)
     chat_id = callback_query.from_user.id
     idx = int(callback_query.data.split('_')[-1])
+    await state.update_data(task_type='my')
     await state.update_data(idx=idx)
     await state.update_data(to_edit=callback_query.message)
-    if callback_query.data.startswith('delete_'):
+    task = await read_task_db(idx=idx)
+    if task.status != 0:
+        await callback_query.answer("Задача больше не доступна 🔒")
+        return
+    if callback_query.data.startswith('my-delete_'):
         await delete_task(state=state, delete_from='worker')
         return
-    elif callback_query.data.startswith('add_comment_'):
+    elif callback_query.data.startswith('add-comment_'):
         await CreateS.add_comment.set()
         await add_comment(state=state)
         # await state.update_data(task_permissions='my')
@@ -149,10 +183,10 @@ async def read_my_menu_callback(callback_query : types.CallbackQuery, state : FS
 
 async def delete_task(state : FSMContext, delete_from : str):
     async with state.proxy() as data:
+        task_type = data['task_type']
         chat_id = data['chat_id']
         idx = data['idx']
-        to_edit = data['to_edit']
-    await delete_task_db(idx=idx)
+        to_edit = data.get('to_edit')
     task = await read_task_db(idx=idx)
     await state.update_data(description=task.description)
     await state.update_data(deadline=task.deadline)
@@ -161,30 +195,44 @@ async def delete_task(state : FSMContext, delete_from : str):
     await state.update_data(worker_username=await id_to_username(task.worker))
     await state.update_data(creator_username=await id_to_username(task.creator))
     try:
-        await bot.delete_message(chat_id, to_edit.message_id)
+        if to_edit is not None:
+            await bot.delete_message(chat_id, to_edit.message_id)
         if delete_from == 'creator':
+            await delete_task_db(idx=idx)
             await task_closed_by_creator(state=state)
         else:
+            await wait_approve_task_db(idx=idx)
             await task_closed_by_worker(state=state)
-        await state.update_data(menu_title="Задача завершена")
+            # await bot.edit_message_reply_markup(chat_id=chat_id, message_id=)
+        # await state.update_data(menu_title="Задача завершена")
     except Exception as e:
-        await state.update_data(menu_title="Попросите пользователей зарегистрироваться в боте 😡")
-    await return_to_menu(state=state)
+        if to_edit is not None:
+            await bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=to_edit.message_id,
+                text=to_edit.message_text + '\nПопросите пользователей зарегистрироваться в боте 😡'
+                )
+    # await return_to_menu(state=state)
 
-@dp.callback_query_handler(state=CreateS.read_control_menu)
+@dp.callback_query_handler(lambda c: c.data.split('_')[0] in CONTROL_TASKS_MENU, state="*")
 async def read_control_menu_callback(callback_query : types.CallbackQuery, state : FSMContext):
     # await bot.answer_callback_query(callback_query.id)
     chat_id = callback_query.from_user.id
     idx = int(callback_query.data.split('_')[-1])
+    await state.update_data(task_type='control')
     await state.update_data(to_edit=callback_query.message)
     await state.update_data(idx=idx)
+    task = await read_task_db(idx=idx)
+    if task.status == 2:
+        await callback_query.answer("Задача больше не доступна 🔒")
+        return
     if callback_query.data.startswith('update_'):
         await CreateS.update.set()
         await bot.send_message(chat_id, "Выберите параметр для изменения", reply_markup=inline_kb_update)
-    elif callback_query.data.startswith('delete_'):
+    elif callback_query.data.startswith('control-delete_'):
         await delete_task(state=state, delete_from='creator')
         return
-    elif callback_query.data.startswith('add_comment_'):
+    elif callback_query.data.startswith('add-comment_'):
         await CreateS.add_comment.set()
         await add_comment(state=state)
         # await state.update_data(task_permissions='control')
@@ -193,3 +241,21 @@ async def read_control_menu_callback(callback_query : types.CallbackQuery, state
         await read_comments(state=state)
     else:
         await return_to_menu(state=state)
+
+@dp.callback_query_handler(lambda c: c.data.startswith('approve_') or c.data.startswith('reject_'), state="*")
+async def approve_handler(callback_query : types.CallbackQuery, state : FSMContext):
+    request = callback_query.data.split('_')
+    chat_id = callback_query.from_user.id
+    idx = int(request[1])
+    await state.update_data(task_type='control')
+    await state.update_data(idx=idx)
+    await state.update_data(chat_id=chat_id)
+    await state.update_data(chat_id=chat_id)
+    if request[0] == 'approve':
+        await delete_task(state=state, delete_from='creator')
+        await bot.send_message(chat_id, "Запрос на завершение одобрен!")
+    elif request[0] == 'reject':
+        await reject_approve_task_db(idx=idx)
+        await bot.send_message(chat_id, "Запрос на завершение отклонён")
+    await bot.delete_message(chat_id=chat_id, message_id=callback_query.message.message_id)
+    

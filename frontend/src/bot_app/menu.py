@@ -72,6 +72,10 @@ async def return_to_menu(state : FSMContext):
     await state.update_data(menu_message_id=message.message_id)
 
 
+@dp.callback_query_handler(ChatTypeFilter('private'), lambda m: m.data == 'menu', state="*")
+async def menu_query_handler(message: types.Message, state : FSMContext):
+    await return_to_menu(state=state)
+
 @dp.message_handler(ChatTypeFilter('private'), commands="menu", state="*")
 async def menu_handler(message: types.Message, state : FSMContext):
     user_id = message.from_user.id

@@ -13,14 +13,15 @@ class Task(models.Model):
 
     creation_date = models.DateTimeField(default=now)
 
-    done = models.BooleanField(default=False)
+    TASK_STATUS = ((0, 'Working'), (1, 'Reconciliation'), (2, 'Done'), (3, 'Deleted'))
+    status = models.SmallIntegerField(choices=TASK_STATUS, default=0)
 
     creator = models.ForeignKey(User, on_delete=models.CASCADE, related_name="created_tasks", null=True, blank=True)
 
     worker = models.ForeignKey(User, on_delete=models.CASCADE, related_name="worked_tasks", null=True, blank=True)
 
     def __str__(self) -> str:
-        return f"{self.pk}: {self.creation_date} : {self.done}"
+        return f"{self.pk}: {self.creation_date} : {self.status}"
 
 class Comment(models.Model):
     creation_date = models.DateTimeField(default=now)

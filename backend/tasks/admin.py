@@ -5,8 +5,8 @@ from django.contrib.auth.models import User
 from . import models
 
 class TaskAdmin(admin.ModelAdmin):
-    list_display = ["pk","description", "creation_date", "deadline", "done"]
-    list_editable = ["description", "deadline", "done"]
+    list_display = ["pk","description", "creation_date", "deadline", "status"]
+    list_editable = ["description", "deadline", "status"]
 
 admin.site.register(models.Task, TaskAdmin)
 
