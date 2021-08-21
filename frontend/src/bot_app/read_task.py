@@ -17,6 +17,7 @@ from . keyboards import *
 from . menu import return_to_menu
 from . interfaces import *
 from . tools import id_to_username, username_to_id
+from . notiflicate import task_closed_by_creator, task_closed_by_worker
 
 command_to_type = {
     MY_TASKS_COMMAND: "my",
@@ -28,7 +29,7 @@ async def handle_menu(message : types.Message, state : FSMContext):
     async with state.proxy() as data:
         menu_message_id = data.get('menu_message_id')
     chat_id = message.chat.id
-    user_id = await username_to_id(message.from_user.id)
+    user_id = message.from_user.id
     await state.update_data(chat_id=chat_id)
     await state.update_data(user_id=user_id)
     if menu_message_id is not None:
@@ -133,7 +134,10 @@ async def read_my_menu_callback(callback_query : types.CallbackQuery, state : FS
     idx = int(callback_query.data.split('_')[-1])
     await state.update_data(idx=idx)
     await state.update_data(to_edit=callback_query.message)
-    if callback_query.data.startswith('add_comment_'):
+    if callback_query.data.startswith('delete_'):
+        await delete_task(state=state, delete_from='worker')
+        return
+    elif callback_query.data.startswith('add_comment_'):
         await CreateS.add_comment.set()
         await add_comment(state=state)
         # await state.update_data(task_permissions='my')
@@ -143,14 +147,28 @@ async def read_my_menu_callback(callback_query : types.CallbackQuery, state : FS
     else:
         await return_to_menu(state=state)
 
-async def delete_task(state : FSMContext):
+async def delete_task(state : FSMContext, delete_from : str):
     async with state.proxy() as data:
         chat_id = data['chat_id']
         idx = data['idx']
         to_edit = data['to_edit']
     await delete_task_db(idx=idx)
-    await bot.delete_message(chat_id, to_edit.message_id)
-    await state.update_data(menu_title="Задача удалена")
+    task = await read_task_db(idx=idx)
+    await state.update_data(description=task.description)
+    await state.update_data(deadline=task.deadline)
+    await state.update_data(worker=task.worker)
+    await state.update_data(creator=task.creator)
+    await state.update_data(worker_username=await id_to_username(task.worker))
+    await state.update_data(creator_username=await id_to_username(task.creator))
+    try:
+        await bot.delete_message(chat_id, to_edit.message_id)
+        if delete_from == 'creator':
+            await task_closed_by_creator(state=state)
+        else:
+            await task_closed_by_worker(state=state)
+        await state.update_data(menu_title="Задача удалена")
+    except Exception as e:
+        await state.update_data(menu_title="Попросите пользователей зарегистрироваться в боте 😡")
     await return_to_menu(state=state)
 
 @dp.callback_query_handler(state=CreateS.read_control_menu)
@@ -164,7 +182,7 @@ async def read_control_menu_callback(callback_query : types.CallbackQuery, state
         await CreateS.update.set()
         await bot.send_message(chat_id, "Выберите параметр для изменения", reply_markup=inline_kb_update)
     elif callback_query.data.startswith('delete_'):
-        await delete_task(state=state)
+        await delete_task(state=state, delete_from='creator')
         return
     elif callback_query.data.startswith('add_comment_'):
         await CreateS.add_comment.set()

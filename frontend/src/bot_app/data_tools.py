@@ -66,20 +66,12 @@ async def create_task_db(
         async with session.post(DEFAULT_URL + 'task/', json=content, headers=headers) as resp:
             response = await resp.json()
             print(response)
-        
-    data.append(
-        Task(
-            description=description,
-            deadline=deadline,
-            worker=worker,
-            creator=creator,
-            comments=[],
-            idx=response['pk']
-        )
-    )
-    return data[-1].idx
+    
+    return response['pk']
 
 async def read_tasks_db_by_type(user_id : int, task_type : str):
+    if user_id is None:
+        return []
     if task_type not in ('creator', 'worker'):
         return []
     async with aiohttp.ClientSession() as session:

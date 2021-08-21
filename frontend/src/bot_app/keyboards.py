@@ -62,6 +62,7 @@ def get_tasks_markup(tasks_list : list[Task], page=0, step=3):
 def get_task_markup(task_permissions : str, idx : int):
     # inline_button_task_update = InlineKeyboardButton("Редактировать", callback_data=f'update_{idx}')
     inline_button_task_delete = InlineKeyboardButton("Завершить", callback_data=f'delete_{idx}')
+    inline_button_task_delete_ = InlineKeyboardButton("Готово!", callback_data=f'delete_{idx}')
     inline_button_task_comments = InlineKeyboardButton("Комментарии", callback_data=f'comments_{idx}')
     inline_button_task_add_comment = InlineKeyboardButton("Новый комментарий", callback_data=f'add_comment_{idx}')
 
@@ -71,6 +72,7 @@ def get_task_markup(task_permissions : str, idx : int):
     inline_kb_control_task.row(inline_button_task_comments, inline_button_task_add_comment)
     inline_kb_control_task.add(inline_button_task_delete)
     inline_kb_my_task.row(inline_button_task_comments, inline_button_task_add_comment)
+    inline_kb_my_task.add(inline_button_task_delete_)
     if task_permissions == 'control':
         return inline_kb_control_task
     elif task_permissions == 'my':
