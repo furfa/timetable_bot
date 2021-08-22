@@ -7,6 +7,7 @@ from . import models
 class TaskAdmin(admin.ModelAdmin):
     list_display = ["pk","description", "creation_date", "deadline", "status"]
     list_editable = ["description", "deadline", "status"]
+    list_filter = ["status"]
 
 admin.site.register(models.Task, TaskAdmin)
 
