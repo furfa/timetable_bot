@@ -11,32 +11,43 @@ from . import models
 
 class UserSerializer(serializers.Serializer):
     telegram_id = serializers.IntegerField()
+    username = serializers.CharField(allow_blank=True, required=False)
+    first_name = serializers.CharField(allow_blank=True, required=False)
+    last_name = serializers.CharField(allow_blank=True, required=False)
 
     def to_representation(self, value):
         if isinstance(value, User):
-            try:
-                return {
-                    "telegram_id": value.telegram_account.telegram_id
-                }
-            except models.TelegramAccount.DoesNotExist:
-                return {
-                    "telegram_id": None
-                }
+            return {
+                "telegram_id": value.id,
+                "username" : value.username
+            }
+
 
         raise Exception('Unexpected type of user ')
 
     def create(self, validated_data):
-        user, status1 = User.objects.get_or_create(username=validated_data["telegram_id"])
+        val_telegram_id = validated_data["telegram_id"]
+        val_username = validated_data["username"]
+        val_first_name = validated_data["first_name"]
+        val_last_name = validated_data["last_name"]
 
-        tg_acc, status2 = models.TelegramAccount.objects.get_or_create(user=user, telegram_id=validated_data["telegram_id"])
+        user, status1 = User.objects.get_or_create(id=val_telegram_id)
+
+        user.username = val_username
+        user.first_name = val_first_name
+        user.last_name = val_last_name
+        
+        user.save()
+
         return user
-
+"""
     def update(self, instance, validated_data):
         new_tg_acc = models.TelegramAccount.objects.create(telegram_id=validated_data["telegram_id"])
 
         instance.telegram_account = new_tg_acc
         instance.save()
         return instance
+"""
 
 class TaskSerializer(serializers.ModelSerializer):
     creator = UserSerializer()
@@ -45,19 +56,16 @@ class TaskSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         try:
             creator = validated_data.pop("creator")
-            instance.creator = models.TelegramAccount.objects.get(telegram_id=creator["telegram_id"] ).user
+            instance.creator = User.objects.get(id=creator["telegram_id"] )
         except KeyError:
             pass
-        except models.TelegramAccount.DoesNotExist as e:
-            raise e
         
         try:
             worker = validated_data.pop("worker")
-            instance.worker = models.TelegramAccount.objects.get(telegram_id=worker["telegram_id"] ).user
+            instance.worker = User.objects.get(id=worker["telegram_id"] )
         except KeyError:
             pass
-        except models.TelegramAccount.DoesNotExist as e:
-            raise e
+
 
         instance.save()
 
@@ -69,12 +77,12 @@ class TaskSerializer(serializers.ModelSerializer):
         task = super().create(validated_data) 
 
         if creator_telegram_id := creator.get("telegram_id"):
-            task.creator = models.TelegramAccount.objects.get(telegram_id=creator_telegram_id ).user
+            task.creator = User.objects.get(id=creator_telegram_id)
         else:
             raise ValueError
 
         if worker_telegram_id := worker.get("telegram_id"):
-            task.worker = models.TelegramAccount.objects.get(telegram_id=worker_telegram_id ).user
+            task.worker = User.objects.get(id=worker_telegram_id)
         else: 
             raise ValueError
 
@@ -98,7 +106,7 @@ class CommentSerializer(serializers.ModelSerializer):
         comment = super().create(validated_data)
 
         if creator_telegram_id := creator.get("telegram_id"):
-            comment.creator = models.TelegramAccount.objects.get(telegram_id=creator_telegram_id ).user
+            comment.creator = User.objects.get(id=creator_telegram_id )
 
         comment.task = task 
 

@@ -1,40 +1,8 @@
-import telethon
-from pathlib import Path
+from . data_tools import username_to_id_db, id_to_username_db
 
-
-FILE_PATH = Path(__file__).resolve().parent
-client = telethon.TelegramClient(
-    str(FILE_PATH / "sessions" / "session_6287853501704.session"),
-    1,
-    "b6b154c3707471f5339bd661645ed3d6",
-)
 
 async def username_to_id(username : str):
-    await client.connect()
-    entity_id = None
-    try:
-        await client.get_dialogs()
-        entity = await client.get_entity(username)
-        entity_id = entity.id
-    except Exception as e:
-        print(e)
-        pass
-    return entity_id
+    return await username_to_id_db(username=username)
 
 async def id_to_username(user_id : int):
-    await client.connect()
-    entity_username = None
-    try:
-        await client.get_dialogs()
-        entity = await client.get_entity(user_id)
-        entity_username = entity.username
-    except Exception as e:
-        print(e)
-        pass
-    return entity_username
-
-
-# Саша ну ты посмотри что он исполняет, это просто шок)
-# TODO
-def alias_to_id(alias : str) -> int:
-    return hash(str) % 2147483648
+    return await id_to_username_db(user_id=user_id)

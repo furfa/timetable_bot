@@ -12,7 +12,7 @@ from . app import dp, bot
 from . commands import *
 from . states import CreateS
 from . keyboards import *
-from . tools import alias_to_id, username_to_id
+from . tools import username_to_id
 
 
 
@@ -20,7 +20,19 @@ from . tools import alias_to_id, username_to_id
 async def create_task(message: types.Message, state : FSMContext):
     user_id = message.from_user.id
     chat_id = message.chat.id
-    await reg_user(user_id)
+    username = message.from_user.username
+    first_name = message.from_user.first_name
+    if first_name is None:
+        first_name = ""
+    last_name = message.from_user.last_name
+    if last_name is None:
+        last_name = ""
+    await reg_user(
+        user_id=user_id,
+        username=username,
+        first_name=first_name,
+        last_name=last_name
+        )
     await bot.send_message(chat_id, f"""
 👨‍💻 Для работы в личных сообщениях:
 Помощь по командам: /help

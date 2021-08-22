@@ -1,10 +1,14 @@
 from django.contrib.auth.models import User
+from django.db.models.query import QuerySet
+from django.utils.timezone import now
+from django.db.models import Q
 
 from rest_framework import serializers
 from rest_framework.views import APIView
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework import generics
 
 from loguru import logger
 
@@ -31,7 +35,7 @@ def task_detail_view(request, pk:int):
             if serializer.is_valid():
                 serializer.save()
                 return Response(serializer.data, status=status.HTTP_200_OK)
-        except models.TelegramAccount.DoesNotExist:
+        except User.DoesNotExist:
             return Response("NO USER", status=status.HTTP_404_NOT_FOUND)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -40,20 +44,10 @@ def task_detail_view(request, pk:int):
         task.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-
-@api_view(['GET', 'POST'])
-def user_view(request):
-    if request.method == 'GET':
-        serialized_users = UserSerializer(User.objects.all(), many=True)
-        return Response(serialized_users.data, status=status.HTTP_200_OK)
-
-    if request.method == 'POST':
-        serializer = UserSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-    
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+class UserView(generics.ListAPIView, generics.CreateAPIView):
+    serializer_class = UserSerializer
+    def get_queryset(self):
+        return User.objects.all()
 
 
 @api_view(['GET', 'POST'])
@@ -79,8 +73,8 @@ def task_view(request):
 @api_view(['GET'])
 def user_tasks_view(request, telegram_id, creator=True):
     try:
-        user = models.TelegramAccount.objects.get(telegram_id=telegram_id).user
-    except models.TelegramAccount.DoesNotExist:
+        user = User.objects.get(id=telegram_id)
+    except User.DoesNotExist:
         return Response(status=404)
 
     if request.method == "GET":
@@ -128,3 +122,52 @@ def task_comments(request, pk):
             return Response(serializer_comment.data, status=status.HTTP_201_CREATED)
 
         return Response(status=status.HTTP_400_BAD_REQUEST)
+
+class TasksToNotifyList(generics.ListAPIView):
+    serializer_class = TaskSerializer
+
+    def get_queryset(self) -> QuerySet[models.Task]:
+
+        date_now = now()
+
+        if date_now.hour < 7: # Хардкод времени после которого уведомлять
+            return []
+        
+        return models.Task.objects.filter(
+            Q(
+                status = 0
+            ) & ~Q(
+                last_notify_time__year = date_now.year,
+                last_notify_time__month = date_now.month,
+                last_notify_time__day = date_now.day
+            )
+        )
+
+
+class TaskMarkNotifyed(generics.RetrieveAPIView):
+    serializer_class = TaskSerializer
+
+    def get_queryset(self):
+        return models.Task.objects.all()
+
+    def get_object(self):
+        ret_obj = super().get_object()
+        
+        ret_obj.last_notify_time = now()
+        ret_obj.save()
+
+        return ret_obj
+
+class UserDetail(generics.RetrieveAPIView):
+    serializer_class = UserSerializer
+
+    def get_queryset(self):
+        return User.objects.all()
+
+class UserDetailByUsername(UserDetail):
+
+    def get_object(self):
+        queryset = self.get_queryset()
+
+        obj = queryset.get(username=self.kwargs["username"])
+        return obj
