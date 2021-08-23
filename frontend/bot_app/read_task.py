@@ -108,10 +108,10 @@ async def read_comments(state : FSMContext):
         idx = data['idx']
         user_id = data['user_id']
         chat_id = data['chat_id']
-        to_edit = data['to_edit']
+        to_edit = data.get('to_edit')
     comments = await read_comments_db(idx=idx)
     # comments_text = '\n'.join([''] + comments)
-    if not comments:
+    if not comments and to_edit is not None:
         await bot.edit_message_text(chat_id=chat_id, message_id=to_edit.message_id, text=to_edit.text + '\n\nНет комментариев', reply_markup=to_edit.reply_markup)
         # await bot.edit_message_reply_markup(chat_id=chat_id, message_id=to_edit.message_id, reply_markup=None)
     else:
@@ -123,7 +123,11 @@ async def read_comments(state : FSMContext):
             worker_username=await id_to_username(task.worker),
             creator_username=await id_to_username(task.creator)
         )
-        await bot.edit_message_text(chat_id=chat_id, message_id=to_edit.message_id, text=message_text, reply_markup=to_edit.reply_markup)
+        if to_edit is not None:
+            await bot.edit_message_text(chat_id=chat_id, message_id=to_edit.message_id, text=message_text, reply_markup=to_edit.reply_markup)
+        async with state.proxy() as data:
+            if 'to_edit' in data:
+                del data['to_edit']
     # await CreateS.previous()
     # await return_to_menu(state=state)
 
@@ -132,7 +136,6 @@ async def add_comment(state : FSMContext, add_from : str):
         idx = data['idx']
         chat_id = data['chat_id']
         user_id = data['user_id']
-        to_edit = data['to_edit']
     await state.update_data(add_comment_from=add_from)
     message = await bot.send_message(chat_id, f"{get_emoji_by_idx(idx)} Введите комментарий к задаче {idx}")
     await state.update_data(to_delete_last=message.message_id)
@@ -192,6 +195,9 @@ async def delete_task(state : FSMContext, delete_from : str):
                 message_id=to_edit.message_id,
                 text=to_edit.text + '\nПопросите пользователей зарегистрироваться в боте 😡'
                 )
+    async with state.proxy() as data:
+        if 'to_edit' in data:
+            del data['to_edit']
     # await return_to_menu(state=state)
 
 async def fill_task_data(state : FSMContext, task):
