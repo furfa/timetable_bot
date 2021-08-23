@@ -9,7 +9,7 @@ from . commands import *
 """
     Approve task markup
 """
-def get_task_approve_button(idx):
+def get_task_approve_keyboard(idx):
     approve_button = InlineKeyboardButton("Подтвердить", callback_data=f'approve_{idx}')
     reject_button = InlineKeyboardButton("Отклонить", callback_data=f'reject_{idx}')
     inline_kb_task_approve = InlineKeyboardMarkup()

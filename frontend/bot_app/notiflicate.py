@@ -4,7 +4,7 @@ from parse import *
 
 from . app import dp, bot
 from . writing_tools import format_task_card_text, format_task_card_markup
-from . keyboards import get_task_approve_button, keyboard_kb_menu
+from . keyboards import get_task_approve_keyboard, keyboard_kb_menu
 from . data_tools import read_task_db, id_to_username_db
 
 async def send_shadow(chat_id: int):
@@ -130,7 +130,7 @@ async def task_closed_by_worker(state : FSMContext):
     await action_by_worker(
         state=state,
         prefix_text='👏 Задача ждет подтверждения!',
-        notify_markup=get_task_approve_button(idx=idx)
+        notify_markup=get_task_approve_keyboard(idx=idx)
     )
 
 async def add_comment_from_worker(state : FSMContext):

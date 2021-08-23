@@ -1,7 +1,6 @@
-from . keyboards import get_task_markup
+from . keyboards import get_task_markup, get_task_approve_keyboard
 from . data_tools import *
 from . tools import username_to_id
-from aiogram.utils.markdown import bold, text
 
 emojies = [
     '🍀',
@@ -55,5 +54,7 @@ def format_task_card_markup(
     idx,
     task_permissions
     ):
+    if task_permissions == 'approve':
+        return get_task_approve_keyboard(idx=idx)
     return get_task_markup(idx=idx, task_permissions=task_permissions)
 

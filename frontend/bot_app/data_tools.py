@@ -1,6 +1,7 @@
 """
     Functions that implements CRUD of all objects from DB
 """
+from backend import tasks
 import aiohttp
 import json
 from datetime import datetime
@@ -29,7 +30,6 @@ class Task:
         self.comments_users = comments_users
         self.status = 0
 
-data = []
 
 async def reg_user(user_id : int, username : str, first_name : str, last_name : str):
     async with aiohttp.ClientSession() as session:
@@ -87,7 +87,7 @@ async def read_tasks_db_by_type(user_id : int, task_type : str):
                 back_comments = await resp.json()
             comments = [ x['text'] for x in back_comments ]
             comments_users = [ x['creator']['telegram_id'] for x in back_comments ]
-            tasks.append(Task(
+            task = Task(
                 idx=item['pk'],
                 description=item['description'],
                 deadline=convert_date(item['deadline']),
@@ -96,14 +96,23 @@ async def read_tasks_db_by_type(user_id : int, task_type : str):
                 comments=comments,
                 comments_users=comments_users
             )
-            )
+            task.status = item['status']
+            tasks.append(task)
         return tasks
 
 async def read_my_tasks_db(user_id : int):
     return await read_tasks_db_by_type(user_id=user_id, task_type='worker')
 
 async def read_control_tasks_db(user_id : int):
-    return await read_tasks_db_by_type(user_id=user_id, task_type='creator')
+    task = await read_tasks_db_by_type(user_id=user_id, task_type='creator')
+    usual_tasks = []
+    approve_tasks = []
+    for task in tasks:
+        if task.status == 0:
+            usual_tasks.append(task)
+        elif task.status == 1:
+            approve_tasks.append(task)
+    return usual_tasks, approve_tasks
 
 async def read_task_db(idx : int):
     async with aiohttp.ClientSession() as session:
@@ -126,33 +135,6 @@ async def read_task_db(idx : int):
             )
     task.status = response['status']
     return task
-
-def update_task_db():
-    pass
-
-def update_description_db(idx : int, user_id : int, description : str):
-    for task in data:
-        if task.idx == idx and task.creator == user_id:
-            task.description = description
-            break
-
-def update_deadline_db(idx : int, user_id : int, deadline):
-    for task in data:
-        if task.idx == idx and task.creator == user_id:
-            task.deadline = deadline
-            break
-
-def update_worker_db(idx : int, user_id : int, worker : int):
-    for task in data:
-        if task.idx == idx and task.creator == user_id:
-            task.worker = worker
-            break
-
-def update_creator_db(idx : int, user_id : int, creator : int):
-    for task in data:
-        if task.idx == idx and task.creator == user_id:
-            task.creator = creator
-            break
 
 async def read_comments_db(idx : int):
     task = await read_task_db(idx=idx)
@@ -205,12 +187,6 @@ async def id_to_username_db(user_id : int):
 async def username_to_id_db(username : str):
     user_json = await read_user_json_by_username(username=username)
     return user_json['telegram_id']
-
-def delete_comment_db(idx : int, user_id : int, comment_idx : int):
-    for task in data:
-        if task.idx == idx and (task.worker == user_id or task.creator == user_id):
-            if comment_idx < len(task.comments):
-                task.comments.remove(task.comments[comment_idx])
 
 async def delete_task_db(idx : int):
     async with aiohttp.ClientSession() as session:

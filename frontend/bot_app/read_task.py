@@ -49,14 +49,16 @@ async def read_all_tasks(state : FSMContext):
         task_type = data['task_type']
         user_id = data['user_id']
     tasks = []
+    approve_tasks = []
     if task_type == 'control':
-        tasks = await read_control_tasks_db(user_id)
+        tasks, approve_tasks = await read_control_tasks_db(user_id)
     elif task_type == 'my':
         tasks = await read_my_tasks_db(user_id)
     await read_tasks(tasks=tasks, state=state)
+        
     
 
-async def read_tasks(tasks, state : FSMContext):
+async def read_tasks(state : FSMContext, tasks):
     async with state.proxy() as data:
         chat_id = data['chat_id']
         task_type = data['task_type']
@@ -69,6 +71,8 @@ async def read_tasks(tasks, state : FSMContext):
         if task_type == 'control':
             task_permissions = 'control'
             await CreateS.read_control_menu.set()
+        elif task_type == 'approve':
+            task_permissions = 'approve'
         elif task_type == 'my':
             task_permissions = 'my'
             await CreateS.read_my_menu.set()
