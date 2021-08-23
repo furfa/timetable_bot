@@ -23,10 +23,18 @@ class TaskAdmin(admin.ModelAdmin):
         django.db.models.TextField: {'widget': django.forms.Textarea(attrs={'rows':4, 'cols':40})},
     }
 
-    list_display  = ("pk","description", "creation_date", "deadline", "status")
+    list_display  = ("pk","description", "creation_date", "deadline", "status", "creator", "worker")
     list_editable = ("description", "deadline", "status")
-    list_filter   = ("status", )
-    search_fields = ("description", )
+    list_filter   = ("status", "creator", "worker")
+    search_fields = (
+        "description",
+        "creator__first_name",
+        "creator__last_name", 
+        "creator__username",
+        "worker__first_name",
+        "worker__last_name",
+        "worker__username"
+    )
     inlines = (CommentInline, )
 
 @admin.register(models.Comment)
