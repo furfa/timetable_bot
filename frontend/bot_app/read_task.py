@@ -31,35 +31,27 @@ CONTROL_TASKS_MENU = ['control-delete', 'control-add-comment']
 
 @dp.message_handler(ChatTypeFilter('private'), lambda m: m.text in (MY_TASKS_COMMAND, CONTROL_TASKS_COMMAND), state="*")
 async def handle_menu(message : types.Message, state : FSMContext):
-    async with state.proxy() as data:
-        menu_message_id = data.get('menu_message_id')
     chat_id = message.chat.id
     user_id = message.from_user.id
+
+    task_type = message.text
+    task_type = command_to_type[task_type]
+
     await state.update_data(chat_id=chat_id)
     await state.update_data(user_id=user_id)
-    # if menu_message_id is not None:
-    #     try:
-    #         await bot.delete_message(chat_id=chat_id, message_id=menu_message_id)
-    #     except Exception as e:
-    #         pass
-    task_type = message.text
-
-    task_type = command_to_type[task_type]
     await state.update_data(task_type=task_type)
+
     await read_all_tasks(state=state)
     return
 
 async def read_all_tasks(state : FSMContext):
     async with state.proxy() as data:
         task_type = data['task_type']
-        chat_id = data['chat_id']
         user_id = data['user_id']
     tasks = []
     if task_type == 'control':
-        # await CreateS.read_control_awaiting_idx.set()
         tasks = await read_control_tasks_db(user_id)
     elif task_type == 'my':
-        # await CreateS.read_my_awaiting_idx.set()
         tasks = await read_my_tasks_db(user_id)
     await read_tasks(tasks=tasks, state=state)
     
@@ -73,8 +65,6 @@ async def read_tasks(tasks, state : FSMContext):
         await return_to_menu(state=state)
         return
     for task in tasks:
-        idx = task.idx
-        custom_markup = None
         task_permissions = 'my'
         if task_type == 'control':
             task_permissions = 'control'
@@ -82,8 +72,10 @@ async def read_tasks(tasks, state : FSMContext):
         elif task_type == 'my':
             task_permissions = 'my'
             await CreateS.read_my_menu.set()
+
         worker_username = await id_to_username(task.worker)
         creator_username = await id_to_username(task.creator)
+
         message_text = await format_task_card_text(
             idx=task.idx,
             description=task.description,
@@ -91,12 +83,11 @@ async def read_tasks(tasks, state : FSMContext):
             worker_username=worker_username,
             creator_username=creator_username,
         )
-        # comments_text = '\n'.join([''] + task.comments)
         custom_markup = format_task_card_markup(
-            idx=idx,
+            idx=task.idx,
             task_permissions=task_permissions
         )
-        message = await bot.send_message(chat_id, message_text, reply_markup=custom_markup)
+        await bot.send_message(chat_id, message_text, reply_markup=custom_markup)
     await send_shadow(chat_id=chat_id)
     
 """
@@ -106,14 +97,11 @@ async def read_tasks(tasks, state : FSMContext):
 async def read_comments(state : FSMContext):
     async with state.proxy() as data:
         idx = data['idx']
-        user_id = data['user_id']
         chat_id = data['chat_id']
         to_edit = data.get('to_edit')
     comments = await read_comments_db(idx=idx)
-    # comments_text = '\n'.join([''] + comments)
     if not comments and to_edit is not None:
         await bot.edit_message_text(chat_id=chat_id, message_id=to_edit.message_id, text=to_edit.text + '\n\nНет комментариев', reply_markup=to_edit.reply_markup)
-        # await bot.edit_message_reply_markup(chat_id=chat_id, message_id=to_edit.message_id, reply_markup=None)
     else:
         task = await read_task_db(idx=idx)
         message_text = await format_task_card_text(
@@ -128,34 +116,23 @@ async def read_comments(state : FSMContext):
         async with state.proxy() as data:
             if 'to_edit' in data:
                 del data['to_edit']
-    # await CreateS.previous()
-    # await return_to_menu(state=state)
 
 async def add_comment(state : FSMContext, add_from : str):
     async with state.proxy() as data:
         idx = data['idx']
         chat_id = data['chat_id']
-        user_id = data['user_id']
     await state.update_data(add_comment_from=add_from)
     message = await bot.send_message(chat_id, f"{get_emoji_by_idx(idx)} Введите комментарий к задаче {idx}")
     await state.update_data(to_delete_last=message.message_id)
-    # await bot.edit_message_text(chat_id=chat_id, message_id=to_edit.message_id, text=to_edit.text + '\n\nВведите комментарий', reply_markup=to_edit.reply_markup)
-    # await bot.edit_message_reply_markup(chat_id=chat_id, message_id=to_edit.message_id, reply_markup=None)
 
 @dp.message_handler(ChatTypeFilter('private'), state=CreateS.add_comment)
 async def handle_add_comment(message : types.Message, state : FSMContext):
     
     async with state.proxy() as data:
-        add_comment_from = data['add_comment_from']
         idx = data['idx']
+        add_comment_from = data['add_comment_from']
         user_id = data['user_id']
         to_delete_last = data['to_delete_last']
-
-        # emoji_prefix = ''
-        # if add_comment_from == 'creator':
-        #     emoji_prefix = '🔸'
-        # else:
-        #     emoji_prefix = '🔹'
         data['comment'] = message.text
     await add_comment_db(idx=idx, user_id=user_id, comment=data['comment'])
     await bot.delete_message(chat_id=user_id, message_id=message.message_id)
@@ -168,7 +145,6 @@ async def handle_add_comment(message : types.Message, state : FSMContext):
     else:
         pass 
     await CreateS.previous()
-    # await return_to_menu(state=state)
 
 async def delete_task(state : FSMContext, delete_from : str):
     async with state.proxy() as data:
@@ -176,7 +152,7 @@ async def delete_task(state : FSMContext, delete_from : str):
         chat_id = data['chat_id']
         idx = data['idx']
         to_edit = data.get('to_edit')
-    task = await read_task_db(idx=idx)
+    # task = await read_task_db(idx=idx)
     try:
         if to_edit is not None:
             await bot.delete_message(chat_id, to_edit.message_id)
@@ -186,8 +162,6 @@ async def delete_task(state : FSMContext, delete_from : str):
         else:
             await wait_approve_task_db(idx=idx)
             await task_closed_by_worker(state=state)
-            # await bot.edit_message_reply_markup(chat_id=chat_id, message_id=)
-        # await state.update_data(menu_title="Задача завершена")
     except Exception as e:
         if to_edit is not None:
             await bot.edit_message_text(
@@ -198,7 +172,6 @@ async def delete_task(state : FSMContext, delete_from : str):
     async with state.proxy() as data:
         if 'to_edit' in data:
             del data['to_edit']
-    # await return_to_menu(state=state)
 
 async def fill_task_data(state : FSMContext, task):
     await state.update_data(idx=task.idx)
@@ -232,7 +205,6 @@ async def read_my_menu_callback(callback_query : types.CallbackQuery, state : FS
     elif callback_query.data.startswith('my-add-comment_'):
         await CreateS.add_comment.set()
         await add_comment(state=state, add_from='worker')
-        # await state.update_data(task_permissions='my')
     elif callback_query.data.startswith('comments_'):
         await CreateS.read_comments.set()
         await read_comments(state=state)
@@ -266,7 +238,6 @@ async def read_control_menu_callback(callback_query : types.CallbackQuery, state
     elif callback_query.data.startswith('control-add-comment_'):
         await CreateS.add_comment.set()
         await add_comment(state=state, add_from='creator')
-        # await state.update_data(task_permissions='control')
     elif callback_query.data.startswith('comments_'):
         await CreateS.read_comments.set()
         await read_comments(state=state)
