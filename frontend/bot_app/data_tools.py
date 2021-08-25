@@ -1,11 +1,14 @@
 """
     Functions that implements CRUD of all objects from DB
 """
-from backend import tasks
+# from backend import tasks
 import aiohttp
 import json
 from datetime import datetime
 from django.core.serializers.json import DjangoJSONEncoder
+
+from loguru import logger
+
 
 DEFAULT_URL = 'http://localhost:8000/'
 
@@ -39,7 +42,7 @@ async def reg_user(user_id : int, username : str, first_name : str, last_name : 
             'first_name': first_name,
             'last_name': last_name
         }) as resp:
-            print(resp.status)
+            logger.info(resp.status)
 
 async def create_task_db(
         description : str,
@@ -62,7 +65,7 @@ async def create_task_db(
         headers = {'content-type': 'application/json'}
         async with session.post(DEFAULT_URL + 'task/', json=content, headers=headers) as resp:
             response = await resp.json()
-            print(response)
+            logger.info(response)
     
     return response['pk']
 
@@ -79,7 +82,7 @@ async def read_tasks_db_by_type(user_id : int, task_type : str):
         async with session.get(DEFAULT_URL + f'user_{task_type}_tasks/{user_id}', headers=headers) as resp:
             status = resp.status
             if status == 404:
-                print('Catched 404 fuck yeah')
+                logger.info('Catched 404 fuck yeah')
             back_tasks = await resp.json()
         tasks = []
         for item in back_tasks:
@@ -104,22 +107,14 @@ async def read_my_tasks_db(user_id : int):
     return await read_tasks_db_by_type(user_id=user_id, task_type='worker')
 
 async def read_control_tasks_db(user_id : int):
-    task = await read_tasks_db_by_type(user_id=user_id, task_type='creator')
-    usual_tasks = []
-    approve_tasks = []
-    for task in tasks:
-        if task.status == 0:
-            usual_tasks.append(task)
-        elif task.status == 1:
-            approve_tasks.append(task)
-    return usual_tasks, approve_tasks
+    return await read_tasks_db_by_type(user_id=user_id, task_type='creator')
 
 async def read_task_db(idx : int):
     async with aiohttp.ClientSession() as session:
         headers = {'content-type': 'application/json'}
         async with session.get(DEFAULT_URL + f'task/{idx}', headers=headers) as resp:
             response = await resp.json()
-            print(response)
+            logger.info(response)
         async with session.get(DEFAULT_URL + f'task_comments/{response["pk"]}', headers=headers) as resp:
                 back_comments = await resp.json()
         comments = [ x['text'] for x in back_comments ]
@@ -166,7 +161,7 @@ async def add_comment_db(idx : int, user_id : int, comment : str):
         }
         async with session.post(DEFAULT_URL + f'task_comments/{idx}', json=content, headers=headers) as resp:
             comment_resp = await resp.json()
-            print(comment_resp)
+            logger.info(comment_resp)
 
 async def read_user_json(user_id : int):
     async with aiohttp.ClientSession() as session:
@@ -181,8 +176,10 @@ async def read_user_json_by_username(username : str):
             return await resp.json()
 
 async def id_to_username_db(user_id : int):
+
     user_json = await read_user_json(user_id=user_id)
     return user_json['username']
+    
 
 async def username_to_id_db(username : str):
     user_json = await read_user_json_by_username(username=username)
@@ -196,7 +193,7 @@ async def delete_task_db(idx : int):
         }
         async with session.put(DEFAULT_URL + f'task/{idx}', json=content, headers=headers) as resp:
             task = await resp.json()
-            print(task)
+            logger.info(task)
 
 async def wait_approve_task_db(idx : int):
     async with aiohttp.ClientSession() as session:
@@ -206,7 +203,7 @@ async def wait_approve_task_db(idx : int):
         }
         async with session.put(DEFAULT_URL + f'task/{idx}', json=content, headers=headers) as resp:
             task = await resp.json()
-            print(task)
+            logger.info(task)
 
 async def reject_approve_task_db(idx : int):
     async with aiohttp.ClientSession() as session:
@@ -216,13 +213,13 @@ async def reject_approve_task_db(idx : int):
         }
         async with session.put(DEFAULT_URL + f'task/{idx}', json=content, headers=headers) as resp:
             task = await resp.json()
-            print(task)
+            logger.info(task)
 
 async def mark_task_notified(task_idx : int):
     async with aiohttp.ClientSession() as session:
         headers = {'content-type': 'application/json'}
         async with session.get(DEFAULT_URL + f'task_mark_notifyed/{task_idx}', headers=headers) as resp:
-            print(resp.status)
+            logger.info(resp.status)
 
 async def get_task_for_notify():
     async with aiohttp.ClientSession() as session:
@@ -232,3 +229,12 @@ async def get_task_for_notify():
             tasks_idxs = [ x['pk'] for x in tasks ]
             return tasks_idxs
 
+async def update_deadline_task_db(idx : int, deadline):
+    async with aiohttp.ClientSession() as session:
+        content = {
+            'deadline': f"{deadline}+03:00"
+        }
+        headers = {'content-type': 'application/json'}
+        async with session.put(DEFAULT_URL + f'task/{idx}', json=content, headers=headers) as resp:
+            response = await resp.json()
+            logger.info(response)

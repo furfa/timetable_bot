@@ -48,14 +48,14 @@ async def create_task(message: types.Message, state : FSMContext):
         first_name=first_name,
         last_name=last_name
         )
-    await bot.send_message(chat_id, HELP_INFO)
+    await bot.send_message(chat_id, HELP_INFO, parse_mode="HTML")
     await state.update_data(chat_id=chat_id)
     await return_to_menu(state=state)
 
 @dp.message_handler(ChatTypeFilter('private'), commands="help", state="*")
 async def create_task(message: types.Message, state : FSMContext):
     chat_id = message.chat.id
-    await bot.send_message(chat_id, HELP_INFO)
+    await bot.send_message(chat_id, HELP_INFO, parse_mode="HTML")
     await state.update_data(chat_id=chat_id)
     await return_to_menu(state=state)
 

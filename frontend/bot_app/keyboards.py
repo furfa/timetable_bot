@@ -83,12 +83,14 @@ def get_task_markup(task_permissions : str, idx : int):
     inline_button_task_comments = InlineKeyboardButton("Комментарии", callback_data=f'comments_{idx}')
     inline_button_task_add_comment = InlineKeyboardButton("Новый комментарий", callback_data=f'control-add-comment_{idx}')
     inline_button_task_add_comment_ = InlineKeyboardButton("Новый комментарий", callback_data=f'my-add-comment_{idx}')
+    inline_button_task_reschedule = InlineKeyboardButton("Перенести", callback_data=f'control-reschedule_{idx}')
+    inline_button_task_reschedule_ = InlineKeyboardButton("Перенести", callback_data=f'my-reschedule_{idx}')
 
     inline_kb_control_task = InlineKeyboardMarkup()
     inline_kb_my_task = InlineKeyboardMarkup()
 
-    inline_kb_control_task.row(inline_button_task_add_comment, inline_button_task_delete)
-    inline_kb_my_task.row(inline_button_task_add_comment_, inline_button_task_delete_)
+    inline_kb_control_task.row(inline_button_task_add_comment, inline_button_task_reschedule, inline_button_task_delete)
+    inline_kb_my_task.row(inline_button_task_add_comment_, inline_button_task_reschedule_, inline_button_task_delete_)
     if task_permissions == 'control':
         return inline_kb_control_task
     elif task_permissions == 'my':

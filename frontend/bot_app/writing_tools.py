@@ -2,16 +2,48 @@ from . keyboards import get_task_markup, get_task_approve_keyboard
 from . data_tools import *
 from . tools import username_to_id
 
+# from aiogram.utils.markdown import bold
+
 emojies = [
     '🍀',
     '🔮',
     '🍏',
     '🍐',
-    '🍊',
-    '🍋',
     '🍇',
     '🍒',
-    '🍑'
+    '🍑',
+    '🌹',
+    '🌻',
+    '🌼',
+    '🏈',
+    '🌺',
+    '🥭',
+    '🌼',
+    '🍰',
+    '🍭',
+    '🏐',
+    '⚾',
+    '⚽',
+    '🌱',
+    '🍊',
+    '🍋',
+    '🏀',
+    '🌷',
+    '🌿',
+    '🍉',
+    '☘',
+    '🍎',
+    '🌸',
+    '🍬',
+    '🪴',
+    '🍪',
+    '🍩',
+    '🥎',
+    '🎾',
+    '🫐',
+    '🍓',
+    '🧁',
+    '🍍',
 ]
 
 def get_emoji_by_idx(idx : int):
@@ -44,15 +76,15 @@ async def format_task_card_text(
     comments_text = '\n'.join([''] + comments)
     return f"""
 {emoji} Номер: {idx}
-Описание: {description}
+Описание: <b>{description}</b>
 Дедлайн: {deadline: %d/%m/%Y %H:%M}
 Исполнитель 🔹 @{worker_username}
 Контролирующий 🔸 @{creator_username}
 """ + comments_text
 
 def format_task_card_markup(
-    idx,
-    task_permissions
+        idx,
+        task_permissions
     ):
     if task_permissions == 'approve':
         return get_task_approve_keyboard(idx=idx)

@@ -1,4 +1,5 @@
 from ssl import cert_time_to_seconds
+from aiohttp.client_exceptions import ContentTypeError
 from aiogram import types
 from aiogram.dispatcher.dispatcher import Dispatcher
 from aiogram.dispatcher import FSMContext
@@ -29,14 +30,25 @@ def parse_date(date_raw : str):
         date = datetime.strptime(date_raw, "%d.%m")
         date = date.replace(year=2021, hour=23, minute=59)
     except Exception as e:
-        pass
+        date = None
     return date
+
+async def ask_to_register(state : FSMContext, chat_type : str):
+    await state.update_data(menu_title='Попросите пользователей зарегистрироваться в боте 😡')
+    if chat_type == 'private':
+        await return_to_menu(state=state)
+    return
 
 # ChatTypeFilter('private')
 @dp.message_handler(lambda m: m.text.startswith('.'), state="*")
 async def handle_creation(message : types.Message, state : FSMContext):
     logger.info(f'Try to create with text: {message.text}')
     raw_text = message.text
+
+    if len(raw_text) > 3:
+        if raw_text[0] == "." and raw_text[1] != " ":
+            raw_text = ". " + raw_text[1:]
+
     user_id = message.from_user.id
     chat_id = message.chat.id
     await state.update_data(user_id=user_id)
@@ -86,28 +98,25 @@ async def handle_creation(message : types.Message, state : FSMContext):
         return
     
     description = fields[0]
-    worker = await username_to_id(fields[1])
-    creator = await username_to_id(fields[2])
-    # print(worker, creator)
     idx = None
     try:
+        worker = await username_to_id(fields[1])
+        creator = await username_to_id(fields[2])
         idx = await create_task_db(description=description, deadline=date, worker=worker, creator=creator)
-    except Exception as e:
-        await state.update_data(menu_title='Попросите пользователей зарегистрироваться в боте 😡')
+        await state.update_data(idx=idx)
+        await state.update_data(description=description)
+        await state.update_data(deadline=date)
+        await state.update_data(worker=worker)
+        await state.update_data(creator=creator)
+        await state.update_data(initiator=chat_id)
+        await state.update_data(worker_username=fields[1])
+        await state.update_data(creator_username=fields[2])
 
-        if message.chat.type == 'private':
-            await return_to_menu(state=state)
-        return
+        await write_to_worker(state=state)
+    except ContentTypeError as e:
 
-    await state.update_data(idx=idx)
-    await state.update_data(description=description)
-    await state.update_data(deadline=date)
-    await state.update_data(worker=worker)
-    await state.update_data(creator=creator)
-    await state.update_data(initiator=chat_id)
-    await state.update_data(worker_username=fields[1])
-    await state.update_data(creator_username=fields[2])
+        logger.error(f"Пользователя нет в базе ошибка: {e}")
+        await ask_to_register(state=state, chat_type=message.chat.type)
 
-    await write_to_worker(state=state)
     if message.chat.type == 'private':
         await return_to_menu(state=state)

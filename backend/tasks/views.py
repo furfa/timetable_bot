@@ -81,7 +81,7 @@ def user_tasks_view(request, telegram_id, creator=True):
         tasks = []
 
         if creator:
-            tasks = user.created_tasks.filter(status=0)
+            tasks = user.created_tasks.filter(Q(status=0) | Q(status=1))
         else:
             tasks = user.worked_tasks.filter(status=0)
 
