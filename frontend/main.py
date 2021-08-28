@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import asyncio
 from aiogram import executor
 from concurrent.futures import ThreadPoolExecutor
