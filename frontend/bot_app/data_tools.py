@@ -35,6 +35,12 @@ class Task:
 
 
 async def reg_user(user_id : int, username : str, first_name : str, last_name : str):
+    
+    if not first_name:
+        first_name = ""
+    if not last_name:
+        last_name = ""
+
     async with aiohttp.ClientSession() as session:
         async with session.post(DEFAULT_URL + 'user/', json={
             'telegram_id': user_id,

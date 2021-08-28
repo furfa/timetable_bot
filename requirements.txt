@@ -1,0 +1,27 @@
+aiogram==2.14.3
+aiohttp==3.7.4.post0; python_version >= "3.6"
+asgiref==3.4.1; python_version >= "3.6"
+async-timeout==3.0.1; python_full_version >= "3.5.3" and python_version >= "3.6"
+attrs==21.2.0; python_version >= "3.6" and python_full_version < "3.0.0" or python_full_version >= "3.5.0" and python_version >= "3.6"
+babel==2.9.1; python_version >= "2.7" and python_full_version < "3.0.0" or python_full_version >= "3.4.0"
+certifi==2021.5.30
+chardet==4.0.0; python_version >= "3.6" and python_full_version < "3.0.0" or python_full_version >= "3.5.0" and python_version >= "3.6"
+colorama==0.4.4; python_version >= "3.5" and python_full_version < "3.0.0" and sys_platform == "win32" or sys_platform == "win32" and python_version >= "3.5" and python_full_version >= "3.5.0"
+django-filter==2.4.0; python_version >= "3.5"
+django==3.2.6; python_version >= "3.6"
+djangorestframework==3.12.4; python_version >= "3.5"
+emoji==1.4.2
+idna==3.2; python_version >= "3.6"
+loguru==0.5.3; python_version >= "3.5"
+markdown==3.3.4; python_version >= "3.6"
+multidict==5.1.0; python_version >= "3.6"
+parse==1.19.0
+pyaes==1.6.1; python_version >= "3.5"
+pyasn1==0.4.8; python_version >= "3.5" and python_version < "4"
+pytz==2021.1; python_version >= "3.6" and python_full_version < "3.0.0" or python_full_version >= "3.4.0" and python_version >= "3.6"
+rsa==4.7.2; python_version >= "3.5" and python_version < "4"
+sqlparse==0.4.1; python_version >= "3.6"
+telethon==1.23.0; python_version >= "3.5"
+typing-extensions==3.10.0.0; python_version >= "3.6"
+win32-setctime==1.0.3; sys_platform == "win32" and python_version >= "3.5"
+yarl==1.6.3; python_version >= "3.6"
