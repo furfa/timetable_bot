@@ -19,7 +19,8 @@ class UserSerializer(serializers.Serializer):
         if isinstance(value, User):
             return {
                 "telegram_id": value.id,
-                "username" : value.username
+                "username" : value.username,
+                "is_staff" : value.is_staff,
             }
 
 
@@ -40,14 +41,6 @@ class UserSerializer(serializers.Serializer):
         user.save()
 
         return user
-"""
-    def update(self, instance, validated_data):
-        new_tg_acc = models.TelegramAccount.objects.create(telegram_id=validated_data["telegram_id"])
-
-        instance.telegram_account = new_tg_acc
-        instance.save()
-        return instance
-"""
 
 class TaskSerializer(serializers.ModelSerializer):
     creator = UserSerializer()

@@ -52,7 +52,8 @@ class CommentAdmin(admin.ModelAdmin):
 #################
 
 class UserAdmin(BaseUserAdmin):
-    list_display = ["id", "username", "last_name", "first_name"]
+    list_display = ["id", "username", "last_name", "first_name", "is_staff"]
+    list_editable = ["is_staff"]
 
 admin.site.unregister(User)
 admin.site.register(User, UserAdmin)

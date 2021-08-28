@@ -10,7 +10,7 @@ from . data_tools import read_task_db, id_to_username_db
 async def send_shadow(chat_id: int):
     await bot.send_message(chat_id, "Выберите действие", reply_markup=keyboard_kb_menu, parse_mode="HTML")
 
-async def write_to_worker(state : FSMContext):
+async def write_to_worker(state : FSMContext, initiator_markup=keyboard_kb_menu):
     async with state.proxy() as data:
         idx = data['idx']
         initiator_id = data['initiator']
@@ -34,9 +34,9 @@ async def write_to_worker(state : FSMContext):
     try:
         await bot.send_message(worker_id, '👋 Вам поставлена новая задача:\n' + notify_text, reply_markup=notify_markup, parse_mode="HTML")
         await send_shadow(worker_id)
-        await bot.send_message(initiator_id, notify_text, reply_markup=keyboard_kb_menu, parse_mode="HTML")
+        await bot.send_message(initiator_id, notify_text, reply_markup=initiator_markup, parse_mode="HTML")
     except:
-        await bot.send_message(initiator_id, f"🙉 Пользователь @{worker} не зарегистрирован, не могу уведомить его", reply_markup=keyboard_kb_menu, parse_mode="HTML")
+        await bot.send_message(initiator_id, f"🙉 Пользователь @{worker} не зарегистрирован, не могу уведомить его", reply_markup=initiator_markup, parse_mode="HTML")
 
 
 async def action_for_worker(task_idx : int, prefix_text : str):

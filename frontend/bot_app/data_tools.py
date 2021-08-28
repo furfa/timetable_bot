@@ -43,6 +43,7 @@ async def reg_user(user_id : int, username : str, first_name : str, last_name : 
             'last_name': last_name
         }) as resp:
             logger.info(resp.status)
+            return await resp.json()
 
 async def create_task_db(
         description : str,

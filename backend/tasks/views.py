@@ -2,6 +2,7 @@ from django.contrib.auth.models import User
 from django.db.models.query import QuerySet
 from django.utils.timezone import now
 from django.db.models import Q
+from django.conf import settings
 
 from rest_framework import serializers
 from rest_framework.views import APIView
@@ -130,7 +131,7 @@ class TasksToNotifyList(generics.ListAPIView):
 
         date_now = now()
 
-        if date_now.hour < 7: # Хардкод времени после которого уведомлять
+        if date_now.hour < settings.NOTIFY_HOUR: # Хардкод времени после которого уведомлять
             return []
         
         return models.Task.objects.filter(

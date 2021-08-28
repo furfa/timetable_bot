@@ -19,9 +19,11 @@ from . notiflicate import write_to_worker
 
 
 def parse_date(date_raw : str):
+    date_raw = date_raw.strip()
     date = None
     try:
-        date = datetime.strptime(date_raw, "%H:%M %d.%m.%Y")
+        date = datetime.strptime(date_raw, "%d.%m %H:%M")
+        date = date.replace(year=2021)
     except Exception as e:
         pass
     if date is not None:
@@ -75,7 +77,7 @@ async def handle_creation(message : types.Message, state : FSMContext):
 Формат даты:
 ДД.ММ
 или
-ММ:ЧЧ ДД.ММ.ГГГГ
+ДД.ММ ЧЧ:ММ
 
 Пример
 . Необходимо сделать работу @worker @boss 20.08
@@ -85,6 +87,9 @@ async def handle_creation(message : types.Message, state : FSMContext):
         if message.chat.type == 'private':
             await return_to_menu(state=state)
         return
+    fields = list(fields)
+    for idx in range(len(fields)):
+        fields[idx] = fields[idx].strip()
     if len(fields) < 4:
         state.update_data(menu_title="Некорректная команда")
 
@@ -112,10 +117,9 @@ async def handle_creation(message : types.Message, state : FSMContext):
         await state.update_data(worker_username=fields[1])
         await state.update_data(creator_username=fields[2])
 
-        await write_to_worker(state=state)
+        await write_to_worker(state=state, initiator_markup=None)
     except ContentTypeError as e:
-
-        logger.error(f"Пользователя нет в базе ошибка: {e}")
+        logger.error(f"Пользователя нет в базе, ошибка: {e}")
         await ask_to_register(state=state, chat_type=message.chat.type)
 
     if message.chat.type == 'private':
