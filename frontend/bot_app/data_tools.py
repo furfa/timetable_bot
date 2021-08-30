@@ -77,7 +77,11 @@ async def create_task_db(
     return response['pk']
 
 def convert_date(date):
-    return datetime.strptime(date, "%Y-%m-%dT%H:%M:%S+03:00")
+    # Preprocess date (remove timezone info if it's provided)
+    date = date[:-5] if any(date.endswith(x) for x in [ f"0{y}:00" for y in range(10) ]) else date
+    date = date[:-1] if any(date.endswith(x) for x in ('+', '-')) else date
+
+    return datetime.strptime(date, "%Y-%m-%dT%H:%M:%S")
 
 async def read_tasks_db_by_type(user_id : int, task_type : str):
     if user_id is None:
